@@ -1,0 +1,28 @@
+{
+  "name": "smart-roster",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Smart Roster Management System - plan, generate, validate and manage monthly rosters across brands, processes and pods.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.6.3",
+    "vite": "^6.0.7",
+    "vitest": "^3.0.4"
+  }
+}
