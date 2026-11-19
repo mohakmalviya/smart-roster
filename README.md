@@ -10,14 +10,14 @@ A browser-based roster manager for a brand-support operation: employees in pods,
 |---|---|
 | Central data for employees, brands, processes, pods, leads and allocations | Setup tab (all editable); sample data has 32 employees, 20 brands, 4 pods |
 | ~80% single-resource brands; the rest with 2–3 people on separate or shared processes | Sample data: 16 of 20 brands are single-resource; UrbanKicks, GlowVeda, BrewHaus and PetPal are teams |
-| Configurable working days per brand **and** per process | Each brand process has its own calendar: 365 days, daily with public holidays off, Mon–Sat, Mon–Fri, or custom weekdays; plus per-weekday and per-date minimum staffing |
+| Configurable working days per brand and per process | Each brand process has its own calendar: 365 days, daily with public holidays off, Mon–Sat, Mon–Fri, or custom weekdays; plus per-weekday and per-date minimum staffing |
 | Availability, weekly offs, leave, comp-offs, public holidays | Employees (available weekdays, offs per week, preferred off-days), Holidays & leave |
 | Monthly generation that explains conflicts instead of producing an invalid roster | **Generate roster**; anything it can't solve stays visible as a gap with the reason |
 | Mandatory rules vs preferences | Issues are "Must fix" (mandatory) or Warning/Info (preferences); publishing with must-fix issues needs an explicit acknowledgement |
 | Company, pod, brand, process and employee views | Roster tab lenses; Overview has a coverage heatmap and a "who is working" board per day |
 | Manual edits with validation | Click any cell: the drawer shows what the change resolves and what it breaks *before* you apply it. Edited cells are locked and survive regeneration |
 | Changes after generation | Changes tab: report sickness or unavailability → preview → minimal repair, or re-optimise the rest of the month |
-| **Optional, done:** fair weekly offs and holiday rotation, preferences, backup recommendations, one-click fixes, re-optimise from a date, publish/approval, leave approval with risk preview, per-person change notifications, CSV export, JSON import/export, **AI conflict explanations**, **dynamic adding of brands/pods/processes/shifts** | |
+| **Optional, done:** fair weekly offs and holiday rotation, preferences, backup recommendations, one-click fixes, re-optimise from a date, publish/approval, leave approval with risk preview, per-person change notifications, CSV export, JSON import/export, AI conflict explanations, adding brands, pods, processes and shifts at any time | |
 
 ## Run it locally
 
@@ -33,7 +33,7 @@ npm run dev
 
 Open http://localhost:5173, then press **Generate roster**. Data is kept in the browser's localStorage; Setup → Data → *Reset to sample data* starts over.
 
-Optional, for the "✨ Explain with AI" button:
+Optional, for the "Explain with AI" button:
 
 ```bash
 cp .env.example .env
@@ -79,12 +79,12 @@ The engine is independent of the UI, so the same functions run in the browser, i
 
 ### 1. How did you model the data?
 
-Two calendars are kept strictly apart, because mixing them is where rostering tools go wrong:
+The model keeps two calendars apart:
 
 - **When the client needs cover.** The unit is a *requirement*: one process run for one brand (e.g. "GlowVeda · NDR"). Each has its own operating calendar (weekdays + whether it runs on public holidays), shift, minimum staff, optional per-weekday and per-date minimums (a sale day needs 2, a closure is 0), and an *effort* in FTE. Effort lets one person run all three small processes of a brand (0.3 + 0.3 + 0.4) while a busy process takes a whole person.
 - **When a person works.** An employee has a pod, a role (agent, lead, floater), weekly offs per week, the weekdays they can work at all, preferred off-days, a maximum daily load and a comp-off balance. Leave records (planned, sick, comp-off, unavailable; approved or pending) and public holidays sit on top.
 
-The two are linked by **assignments**: an employee is PRIMARY or BACKUP on a requirement. A pod owns brands and has a lead who is also an employee. The roster itself is a grid of cells, `cells[employee][date] = { status, duties[] }`, where status is working, weekly off, holiday, leave, comp-off, not available or idle, and each duty says which requirement and whether it is backup cover. "Single-resource" is not a flag; it's derived (a brand with one primary), so it stays correct when Setup changes.
+The two are linked by **assignments**: an employee is PRIMARY or BACKUP on a requirement. A pod owns brands and has a lead who is also an employee. The roster itself is a grid of cells, `cells[employee][date] = { status, duties[] }`, where status is working, weekly off, holiday, leave, comp-off, not available or idle, and each duty says which requirement and whether it is backup cover. "Single-resource" is derived from the data (a brand with one primary), so it stays correct when Setup changes.
 
 ### 2. How does generation work, and how does it satisfy constraints?
 
@@ -97,13 +97,13 @@ It's a constraint-satisfaction problem solved by construction plus local search,
 5. **Local search** moves offs (single moves, then pairs of people in "problem weeks") to minimise a weighted cost: uncovered head-day 1000 ≫ over-long working run 300 > working on a holiday 8 > idle day 6 > missed preference 4 > using a backup 3. Because the gap weight dominates, a preference is never bought with a coverage gap, and the weekly-off entitlement is never traded away at all.
 6. **Validate** the result with the same validator that runs after every manual edit.
 
-December's sample generates in about 2 seconds (tens of thousands of candidate plans) with 99.6% coverage. The 5 uncovered head-days left are genuinely infeasible, and each is explained.
+December's sample generates in about 2 seconds (tens of thousands of candidate plans) with 99.6% coverage. The 5 head-days left uncovered can't be covered with this data, and each is explained.
 
 ### 3. Single-resource brands vs multi-employee brands
 
 For a **single-resource** brand, the person's weekly off *is* a coverage gap on any day the brand operates, so each off is planned together with who covers it. The search prefers to put the off on a day the brand is closed (Sunday for Mon–Sat brands). If the brand runs 365 days, it puts the off where a backup is free and on a compatible shift. Backups are spread so one floater isn't covering three brands on the same day.
 
-For **multi-employee** brands, the team staggers its offs so the minimum staff is met each day, with peaks handled per weekday (UrbanKicks needs 2 on Mondays). On public holidays only the required number work, rotated fairly. Shared processes (two people on the same CS queue) and separate processes (one on CS, one on returns) are the same model: each requirement simply has its own list of primaries.
+For **multi-employee** brands, the team staggers its offs so the minimum staff is met each day, with peaks handled per weekday (UrbanKicks needs 2 on Mondays). On public holidays only the required number work, rotated fairly. Shared processes (two people on the same CS queue) and separate processes (one on CS, one on returns) are the same model: each requirement has its own list of primaries.
 
 ### 4. What happens when a single-resource employee is unavailable?
 
@@ -119,7 +119,7 @@ The generator never produces a roster that looks valid but isn't. Rules have a f
 - **The goal it optimises hardest:** client coverage.
 - **Soft goals:** consecutive-day limit, holiday fairness, preferences.
 
-When coverage still can't be met, the gap is left visible as a must-fix issue that explains *why* (e.g. "Primary: Gaurav, planned leave. Backup: Simran, planned leave") and what would fix it. Where the engine can see a fix that bends a soft rule (a stretched cross-cover, a moved off), it offers it as a one-click suggestion rather than applying it silently. Configuration problems, such as a process with no primary or a pending leave that would leave a brand uncovered, are flagged before they become gaps. Publishing with open must-fix issues requires an explicit acknowledgement, which is recorded.
+When coverage still can't be met, the gap is left visible as a must-fix issue that explains why (e.g. "Primary: Gaurav, planned leave. Backup: Simran, planned leave") and what would fix it. Where the engine can see a fix that bends a soft rule (a stretched cross-cover, a moved off), it offers it as a one-click suggestion instead of applying it silently. Configuration problems, such as a process with no primary or a pending leave that would leave a brand uncovered, are flagged before they become gaps. Publishing with open must-fix issues requires an explicit acknowledgement, which is recorded.
 
 ### 6. What is automated and what is left to humans?
 
@@ -129,7 +129,7 @@ When coverage still can't be met, the gap is left visible as a must-fix issue th
 
 ### 7. What changes if the team doubles?
 
-The generator's work grows roughly with people × weeks, and evaluation is incremental (only changed days are recomputed). Pair moves are already limited to the people involved in a problem week, so 60–70 people is still seconds in a Web Worker. Beyond that, the natural split is **by pod**: pods share few backups, so each pod can be solved independently (in parallel), with a final pass for cross-pod floaters. The bigger changes would be operational rather than algorithmic:
+The generator's work grows roughly with people × weeks, and evaluation is incremental (only changed days are recomputed). Pair moves are already limited to the people involved in a problem week, so 60–70 people is still seconds in a Web Worker. Beyond that, the natural split is by pod: pods share few backups, so each pod can be solved independently (in parallel), with a final pass for cross-pod floaters. The bigger changes would be operational rather than algorithmic:
 
 - Move storage from localStorage to a server database (Postgres): `state.tsx` is the only module that touches storage.
 - Add authentication and roles, so pod leads edit their pod and ops managers publish.
