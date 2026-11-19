@@ -8,7 +8,6 @@ import {
   IconAlert,
   IconBook,
   IconCalendar,
-  IconCheck,
   IconChevronLeft,
   IconChevronRight,
   IconDownload,
@@ -19,7 +18,6 @@ import {
   IconSend,
   IconSettings,
   IconSwap,
-  IconWand,
 } from './ui/icons';
 import { Changes } from './views/Changes';
 import { Guide } from './views/Guide';
@@ -36,16 +34,15 @@ interface NavItem {
   short: string;
   icon: ReactNode;
   group: string;
-  sub: string;
 }
 
 const NAV: NavItem[] = [
-  { tab: 'overview', label: 'Overview', short: 'Overview', icon: <IconOverview />, group: 'Plan', sub: 'Coverage, open problems and who is working on any day.' },
-  { tab: 'roster', label: 'Roster', short: 'Roster', icon: <IconCalendar />, group: 'Plan', sub: 'The month by company, pod, brand, process or person. Click any cell to edit it.' },
-  { tab: 'issues', label: 'Issues', short: 'Issues', icon: <IconAlert />, group: 'Plan', sub: 'Every rule the roster breaks, why it happened, and how to fix it.' },
-  { tab: 'changes', label: 'Changes & approvals', short: 'Changes', icon: <IconSwap />, group: 'Operate', sub: 'Report sickness, approve leave and see who needs to hear about a change.' },
-  { tab: 'setup', label: 'Setup', short: 'Setup', icon: <IconSettings />, group: 'Configure', sub: 'Brands, processes, people, calendars and rules. Everything here is editable.' },
-  { tab: 'guide', label: 'How it works', short: 'Guide', icon: <IconBook />, group: 'Configure', sub: 'What the engine does, which rules are mandatory, and the assumptions behind it.' },
+  { tab: 'overview', label: 'Overview', short: 'Overview', icon: <IconOverview />, group: 'Plan' },
+  { tab: 'roster', label: 'Roster', short: 'Roster', icon: <IconCalendar />, group: 'Plan' },
+  { tab: 'issues', label: 'Issues', short: 'Issues', icon: <IconAlert />, group: 'Plan' },
+  { tab: 'changes', label: 'Changes & approvals', short: 'Changes', icon: <IconSwap />, group: 'Operate' },
+  { tab: 'setup', label: 'Setup', short: 'Setup', icon: <IconSettings />, group: 'Configure' },
+  { tab: 'guide', label: 'How it works', short: 'Guide', icon: <IconBook />, group: 'Configure' },
 ];
 
 export function App() {
@@ -77,12 +74,9 @@ export function App() {
       <header className="topbar">
         <div className="brandmark">
           <span className="logo" aria-hidden="true">
-            <IconCalendar size={17} />
+            SR
           </span>
-          <span className="bm-text">
-            Smart Roster
-            <span className="bm-sub">Roster planning</span>
-          </span>
+          <span className="bm-text">Smart Roster</span>
         </div>
 
         <div className="monthnav" aria-label="Month">
@@ -103,25 +97,18 @@ export function App() {
         )}
 
         {s && (
-          <div className="health" title={`${s.coveredUnits} of ${s.requiredUnits} head-days covered`}>
-            <div className="health-top">
-              <span>
-                <b>{s.coveragePct.toFixed(1)}%</b> covered
-              </span>
-              {s.errors > 0 ? (
-                <button className="mini-err" onClick={() => go('issues')}>
-                  {s.errors} must-fix
-                </button>
-              ) : (
-                <span className="mini-ok">
-                  <IconCheck size={12} /> valid
-                </span>
-              )}
-            </div>
-            <div className="meter">
-              <span style={{ width: `${Math.min(100, s.coveragePct)}%` }} className={s.gapUnits ? 'has-gap' : ''} />
-            </div>
-          </div>
+          <span className="summary">
+            <span className="cov-part">
+              <b>{s.coveragePct.toFixed(1)}%</b> covered ·{' '}
+            </span>
+            {s.errors > 0 ? (
+              <button className="linkbtn" onClick={() => go('issues')}>
+                {s.errors} must-fix
+              </button>
+            ) : (
+              <span className="ok-text">no must-fix issues</span>
+            )}
+          </span>
         )}
 
         <div className="spacer" />
@@ -144,7 +131,6 @@ export function App() {
           </div>
         )}
         <button className="btn primary" disabled={!!busy} onClick={() => generate()}>
-          <IconWand size={15} />
           <span>{roster ? 'Regenerate' : 'Generate roster'}</span>
         </button>
         {roster && (
@@ -173,29 +159,12 @@ export function App() {
             ))}
           </div>
         ))}
-        {s && (
-          <div className="navcard">
-            <div className="navlabel" style={{ padding: 0 }}>
-              {monthLabel(month)}
-            </div>
-            <div className="ring-row">
-              <Ring pct={s.coveragePct} bad={s.gapUnits > 0} />
-              <div className="small">
-                <div>
-                  <b>{s.coveredUnits}</b>
-                  <span className="muted"> / {s.requiredUnits} head-days</span>
-                </div>
-                <div className={s.errors ? 'err-text' : 'ok-text'}>{s.errors ? `${s.errors} must-fix issue${s.errors === 1 ? '' : 's'}` : 'All rules met'}</div>
-              </div>
-            </div>
-          </div>
-        )}
       </nav>
 
       <main className="main">
         <div className="pagehead">
           <h1>{tab === 'overview' ? monthLabel(month) : page.label}</h1>
-          <p>{page.sub}</p>
+          {tab !== 'overview' && tab !== 'guide' && <p>{monthLabel(month)}</p>}
         </div>
         {tab === 'overview' && <Overview openRoster={openRoster} goIssues={() => go('issues')} />}
         {tab === 'roster' && <RosterView lens={lens} setLens={setLens} sel={sel} setSel={(l, v) => setSelState((x) => ({ ...x, [l]: v }))} />}
@@ -209,35 +178,10 @@ export function App() {
       {reopt && <ReoptModal onClose={() => setReopt(false)} />}
       {toast && (
         <div className="toast" role="status">
-          <span className="toast-ico">
-            <IconCheck size={13} />
-          </span>
-          <span>{toast}</span>
+          {toast}
         </div>
       )}
     </div>
-  );
-}
-
-function Ring({ pct, bad }: { pct: number; bad: boolean }) {
-  const r = 17;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg width="46" height="46" viewBox="0 0 44 44" className="ring" aria-hidden="true">
-      <circle cx="22" cy="22" r={r} className="ring-bg" />
-      <circle
-        cx="22"
-        cy="22"
-        r={r}
-        className={`ring-fg ${bad ? 'bad' : ''}`}
-        strokeDasharray={c}
-        strokeDashoffset={c * (1 - Math.min(100, pct) / 100)}
-        transform="rotate(-90 22 22)"
-      />
-      <text x="22" y="25.5" textAnchor="middle">
-        {Math.floor(pct)}%
-      </text>
-    </svg>
   );
 }
 

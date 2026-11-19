@@ -2,18 +2,14 @@ import { useState, type ReactNode } from 'react';
 import { fmtDate, monthLabel, weekday, WEEKDAY_LETTER } from '../engine/dates';
 import { useStore } from '../state';
 import { IssueCard, ProcTag } from '../ui/common';
-import { IconAlert, IconCalendar, IconChevronLeft, IconChevronRight, IconLayers, IconShield, IconTag, IconTarget, IconUsers, IconWand } from '../ui/icons';
+import { IconChevronLeft, IconChevronRight } from '../ui/icons';
 import type { Lens } from './RosterView';
 
-function Kpi({ icon, tone, label, value, sub, children }: { icon: ReactNode; tone: string; label: string; value: ReactNode; sub: ReactNode; children?: ReactNode }) {
+function Stat({ label, value, sub, tone }: { label: string; value: ReactNode; sub: ReactNode; tone?: 'ok' | 'bad' }) {
   return (
-    <div className="panel kpi">
-      <div className="kpi-head">
-        <span className={`kpi-ico ${tone}`}>{icon}</span>
-        <span className="label">{label}</span>
-      </div>
-      <div className="value">{value}</div>
-      {children}
+    <div className="stat">
+      <div className="label">{label}</div>
+      <div className={`value ${tone ?? ''}`}>{value}</div>
       <div className="sub">{sub}</div>
     </div>
   );
@@ -30,56 +26,48 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
     return new Set(reqs.flatMap((r) => ctx.primariesOf.get(r) ?? [])).size <= 1;
   }).length;
   const floaters = ctx.emps.filter((e) => e.role === 'FLOATER').length;
+  const singlePct = Math.round((single / Math.max(1, data.brands.length)) * 100);
 
-  const kpisStatic = (
-    <>
-      <Kpi icon={<IconUsers size={16} />} tone="violet" label="Employees" value={ctx.emps.length} sub={`${data.pods.length} pods · ${floaters} floaters`} />
-      <Kpi
-        icon={<IconTag size={16} />}
-        tone="amber"
-        label="Brands"
-        value={data.brands.length}
-        sub={`${single} single-resource (${Math.round((single / Math.max(1, data.brands.length)) * 100)}%)`}
-      />
-      <Kpi icon={<IconLayers size={16} />} tone="teal" label="Brand processes" value={ctx.reqs.length} sub={`${data.processes.length} process types`} />
-    </>
-  );
-
-  if (!roster || !validation)
+  if (!roster || !validation) {
+    const inMonth = (from: string, to: string) => from <= ctx.dates[ctx.dates.length - 1] && to >= ctx.dates[0];
+    const leaves = data.leaves.filter((l) => inMonth(l.start, l.end));
+    const approved = leaves.filter((l) => l.status === 'APPROVED').length;
     return (
-      <div className="stack">
-        <div className="hero panel">
-          <div className="hero-body">
-            <span className="hero-ico">
-              <IconCalendar size={26} />
-            </span>
-            <h2>Plan {monthLabel(month)} in one click</h2>
-            <p>
-              The engine reads every rule in Setup, plans weekly offs, rotates public holidays and assigns backup cover. Anything it cannot solve is listed with
-              the reason and a suggested fix — it never hands you a roster that only looks valid.
-            </p>
-            <button className="btn primary lg" disabled={!!busy} onClick={() => generate()}>
-              <IconWand size={17} /> {busy ? busy : 'Generate roster'}
-            </button>
-          </div>
-          <ol className="hero-steps">
-            <li>
-              <b>Fixed facts first</b>
-              <span>Approved leave, comp-offs, unavailability and locked cells.</span>
-            </li>
-            <li>
-              <b>Plan offs and holidays</b>
-              <span>Weekly offs placed where cover exists; holidays rotated fairly.</span>
-            </li>
-            <li>
-              <b>Cover and explain</b>
-              <span>Backups fill gaps; what is left becomes an explained issue.</span>
-            </li>
-          </ol>
+      <div className="panel emptyplan">
+        <div>
+          <h2>No roster for {monthLabel(month)} yet</h2>
+          <p>
+            Generating plans weekly offs and holiday duty for everyone, then fills gaps from each process's backups. Anything it can't cover shows up under
+            Issues with the reason.
+          </p>
+          <button className="btn primary lg" disabled={!!busy} onClick={() => generate()}>
+            {busy ? busy : `Generate ${monthLabel(month)}`}
+          </button>
         </div>
-        <div className="kpis">{kpisStatic}</div>
+        <dl className="inputs">
+          <div className="caption">Inputs from Setup</div>
+          <dt>People</dt>
+          <dd>
+            {ctx.emps.length} <span className="faint">({floaters} floaters)</span>
+          </dd>
+          <dt>Pods</dt>
+          <dd>{data.pods.length}</dd>
+          <dt>Brands</dt>
+          <dd>
+            {data.brands.length} <span className="faint">({singlePct}% single-person)</span>
+          </dd>
+          <dt>Brand processes</dt>
+          <dd>{ctx.reqs.length}</dd>
+          <dt>Public holidays</dt>
+          <dd>{ctx.dates.filter((d) => ctx.holidays.has(d)).length}</dd>
+          <dt>Leave requests</dt>
+          <dd>
+            {leaves.length} <span className="faint">({approved} approved)</span>
+          </dd>
+        </dl>
       </div>
     );
+  }
 
   const s = validation.summary;
   const top = validation.issues.filter((i) => i.severity === 'ERROR').slice(0, 4);
@@ -88,34 +76,17 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
 
   return (
     <div className="stack">
-      <div className="kpis">
-        <Kpi
-          icon={<IconTarget size={16} />}
-          tone={s.gapUnits ? 'red' : 'green'}
-          label="Coverage"
-          value={<span style={{ color: s.gapUnits ? 'var(--err)' : 'var(--ok)' }}>{s.coveragePct.toFixed(1)}%</span>}
-          sub={`${s.coveredUnits}/${s.requiredUnits} head-days · ${s.gapUnits} uncovered`}
-        >
-          <div className="meter">
-            <span style={{ width: `${Math.min(100, s.coveragePct)}%` }} className={s.gapUnits ? 'has-gap' : ''} />
-          </div>
-        </Kpi>
-        <Kpi
-          icon={s.errors ? <IconAlert size={16} /> : <IconShield size={16} />}
-          tone={s.errors ? 'red' : 'green'}
-          label="Must-fix issues"
-          value={<span style={{ color: s.errors ? 'var(--err)' : 'var(--ok)' }}>{s.errors}</span>}
-          sub={`${s.warnings} warnings · ${s.infos} info`}
-        />
-        {kpisStatic}
+      <div className="stats">
+        <Stat label="Coverage" value={`${s.coveragePct.toFixed(1)}%`} tone={s.gapUnits ? 'bad' : 'ok'} sub={`${s.gapUnits} of ${s.requiredUnits} head-days uncovered`} />
+        <Stat label="Must fix" value={s.errors} tone={s.errors ? 'bad' : 'ok'} sub={`${s.warnings} warnings, ${s.infos} info`} />
+        <Stat label="People" value={ctx.emps.length} sub={`${data.pods.length} pods, ${floaters} floaters`} />
+        <Stat label="Brands" value={data.brands.length} sub={`${single} run by one person`} />
+        <Stat label="Brand processes" value={ctx.reqs.length} sub={`${data.processes.length} process types`} />
       </div>
 
       <section className="panel panel-pad stack" style={{ gap: 12 }}>
         <div className="sect-head">
-          <div>
-            <h3>Coverage heatmap</h3>
-            <p className="small muted">Each row is one brand process; each square one day. Click a brand to open it, a day to see who works.</p>
-          </div>
+          <h3>Coverage by brand process</h3>
           <HeatLegend />
         </div>
         <Heatmap day={day} onDay={setDay} onBrand={(b) => openRoster('brand', b)} />
@@ -124,12 +95,11 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
       {top.length > 0 && (
         <section className="stack" style={{ gap: 10 }}>
           <div className="sect-head">
-            <div>
-              <h3>Needs attention</h3>
-              <p className="small muted">Mandatory rules the engine could not satisfy, with the reason and the options.</p>
-            </div>
+            <h3>
+              Must fix <span className="faint">({s.errors})</span>
+            </h3>
             <button className="btn sm" onClick={goIssues}>
-              All issues →
+              All issues
             </button>
           </div>
           {top.map((i) => (
@@ -140,10 +110,7 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
 
       <section className="panel panel-pad stack" style={{ gap: 14 }}>
         <div className="sect-head">
-          <div>
-            <h3>Who is working</h3>
-            <p className="small muted">Every brand process and the people on it for one day. ↺ marks backup cover.</p>
-          </div>
+          <h3>Who's working</h3>
           <div className="daypick">
             <button className="btn icon sm" disabled={di <= 0} onClick={() => setDay(ctx.dates[di - 1])} aria-label="Previous day">
               <IconChevronLeft size={15} />
@@ -152,14 +119,14 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
               {ctx.dates.map((d) => (
                 <option key={d} value={d}>
                   {fmtDate(d)}
-                  {ctx.holidays.get(d) ? ` — ${ctx.holidays.get(d)}` : ''}
+                  {ctx.holidays.get(d) ? ` (${ctx.holidays.get(d)})` : ''}
                 </option>
               ))}
             </select>
             <button className="btn icon sm" disabled={di >= ctx.dates.length - 1} onClick={() => setDay(ctx.dates[di + 1])} aria-label="Next day">
               <IconChevronRight size={15} />
             </button>
-            {s.gapDays.has(day) ? <span className="badge err">coverage gap</span> : <span className="badge ok">fully covered</span>}
+            {s.gapDays.has(day) && <span className="badge err">gap</span>}
           </div>
         </div>
         {pods.map((p) => {
@@ -174,7 +141,7 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
                 </button>
                 {lead && (
                   <span className="small muted">
-                    Lead {lead.name} · <span className={leadIn ? 'ok-text' : 'faint'}>{leadIn ? 'in today' : 'off today'}</span>
+                    lead {lead.name}, <span className={leadIn ? '' : 'faint'}>{leadIn ? 'in' : 'off'}</span>
                   </span>
                 )}
               </div>
@@ -204,7 +171,7 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
                                   {c.backups.length > 0 && (
                                     <span className="backup-text">
                                       {c.primaries.length ? ', ' : ''}
-                                      {c.backups.map((x) => ctx.emp.get(x)?.name.split(' ')[0] + ' ↺').join(', ')}
+                                      {c.backups.map((x) => ctx.emp.get(x)?.name.split(' ')[0] + ' (backup)').join(', ')}
                                     </span>
                                   )}
                                   {c.staffed === 0 && <span className="err-text">nobody</span>}
@@ -263,7 +230,7 @@ function Heatmap({ day, onDay, onBrand }: { day: string; onDay: (d: string) => v
           const wd = weekday(d);
           const cls = ['hd', wd === 0 || wd === 6 ? 'we' : '', gap.has(d) ? 'gap' : '', d === day ? 'sel' : '', ctx.holidays.get(d) ? 'hol' : ''].join(' ');
           return (
-            <button key={d} className={cls} onClick={() => onDay(d)} title={`${fmtDate(d)}${ctx.holidays.get(d) ? ' — ' + ctx.holidays.get(d) : ''}`}>
+            <button key={d} className={cls} onClick={() => onDay(d)} title={`${fmtDate(d)}${ctx.holidays.get(d) ? ', ' + ctx.holidays.get(d) : ''}`}>
               <span>{Number(d.slice(8))}</span>
               <span className="wd">{WEEKDAY_LETTER[wd]}</span>
             </button>
@@ -278,9 +245,7 @@ function Heatmap({ day, onDay, onBrand }: { day: string; onDay: (d: string) => v
             <div key={r.id} style={{ display: 'contents' }}>
               <button className={`hl ${first ? 'first' : ''}`} onClick={() => onBrand(r.brandId)} title={`${brand?.name} · ${proc?.name}`}>
                 <span className="hl-b">{first ? brand?.name : ''}</span>
-                <span className="hl-p" style={{ color: proc?.color }}>
-                  {proc?.code}
-                </span>
+                <span className="hl-p">{proc?.code}</span>
               </button>
               {ctx.dates.map((d) => {
                 const c = validation.coverage[r.id][d];

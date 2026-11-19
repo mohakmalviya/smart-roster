@@ -4,7 +4,7 @@ import { reqLabel, type Ctx } from '../engine/context';
 import { WEEKDAY_LETTER } from '../engine/dates';
 import type { Cell, ID, Issue, Severity } from '../engine/types';
 import { useStore } from '../state';
-import { IconClose, IconSpark } from './icons';
+import { IconClose } from './icons';
 
 export function Modal({ title, onClose, children, footer }: { title: ReactNode; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
   useEscape(onClose);
@@ -248,16 +248,14 @@ export function IssueCard({ issue, compact }: { issue: Issue; compact?: boolean 
       )}
       {!compact && issue.severity !== 'INFO' && (
         <div className="row">
-          <button className="btn sm ai-btn" onClick={explain} disabled={aiBusy}>
-            <IconSpark size={14} /> {aiBusy ? 'Asking Claude…' : 'Explain with AI'}
+          <button className="btn sm" onClick={explain} disabled={aiBusy}>
+            {aiBusy ? 'Asking Claude…' : 'Explain with AI'}
           </button>
         </div>
       )}
       {ai && (
         <div className="ai">
-          <div className="ai-head">
-            <IconSpark size={13} /> AI explanation
-          </div>
+          <div className="ai-head">Claude's explanation</div>
           {ai}
         </div>
       )}
