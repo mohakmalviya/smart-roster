@@ -2,7 +2,7 @@
 
 A browser-based roster manager for a brand-support operation: employees in pods, brands owned by pods, and several processes (customer support, accounts, NDR, returns) run for each brand on its own calendar. It generates a monthly roster, checks it against every rule, explains each conflict it cannot solve, and handles changes after the roster is published with the fewest possible edits.
 
-**Live demo:** _add your Vercel URL here_ · **Demo video:** _add link_ · **Approach note:** [APPROACH.md](APPROACH.md)
+**Live demo:** https://smart-roster-rosy.vercel.app · **Demo video:** _add link_ · **Approach note:** [APPROACH.md](APPROACH.md)
 
 ## What it does
 
