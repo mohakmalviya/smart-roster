@@ -171,7 +171,7 @@ export function req(ctx: Ctx, id: ID): Requirement {
 export function reqLabel(ctx: Ctx, id: ID): string {
   const r = ctx.req.get(id);
   if (!r) return id;
-  return `${ctx.brand.get(r.brandId)?.name ?? r.brandId} · ${ctx.process.get(r.processId)?.code ?? r.processId}`;
+  return `${ctx.brand.get(r.brandId)?.name ?? r.brandId} ${ctx.process.get(r.processId)?.code ?? r.processId}`;
 }
 
 export function empName(ctx: Ctx, id: ID): string {

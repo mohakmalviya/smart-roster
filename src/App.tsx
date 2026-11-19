@@ -4,21 +4,7 @@ import { monthLabel, shiftMonth } from './engine/dates';
 import { cloneCells } from './engine/context';
 import { useStore } from './state';
 import { downloadFile, Modal, SevBadge } from './ui/common';
-import {
-  IconAlert,
-  IconBook,
-  IconCalendar,
-  IconChevronLeft,
-  IconChevronRight,
-  IconDownload,
-  IconLoader,
-  IconMore,
-  IconOverview,
-  IconRewind,
-  IconSend,
-  IconSettings,
-  IconSwap,
-} from './ui/icons';
+import { IconChevronLeft, IconChevronRight, IconLoader, IconMore } from './ui/icons';
 import { Changes } from './views/Changes';
 import { Guide } from './views/Guide';
 import { Issues } from './views/Issues';
@@ -28,21 +14,13 @@ import { Setup } from './views/Setup';
 
 type Tab = 'overview' | 'roster' | 'issues' | 'changes' | 'setup' | 'guide';
 
-interface NavItem {
-  tab: Tab;
-  label: string;
-  short: string;
-  icon: ReactNode;
-  group: string;
-}
-
-const NAV: NavItem[] = [
-  { tab: 'overview', label: 'Overview', short: 'Overview', icon: <IconOverview />, group: 'Plan' },
-  { tab: 'roster', label: 'Roster', short: 'Roster', icon: <IconCalendar />, group: 'Plan' },
-  { tab: 'issues', label: 'Issues', short: 'Issues', icon: <IconAlert />, group: 'Plan' },
-  { tab: 'changes', label: 'Changes & approvals', short: 'Changes', icon: <IconSwap />, group: 'Operate' },
-  { tab: 'setup', label: 'Setup', short: 'Setup', icon: <IconSettings />, group: 'Configure' },
-  { tab: 'guide', label: 'How it works', short: 'Guide', icon: <IconBook />, group: 'Configure' },
+const NAV: { tab: Tab; label: string }[] = [
+  { tab: 'overview', label: 'Overview' },
+  { tab: 'roster', label: 'Roster' },
+  { tab: 'issues', label: 'Issues' },
+  { tab: 'changes', label: 'Changes and leave' },
+  { tab: 'setup', label: 'Setup' },
+  { tab: 'guide', label: 'How it works' },
 ];
 
 export function App() {
@@ -66,106 +44,84 @@ export function App() {
 
   const s = validation?.summary;
   const issueCount = s ? s.errors + s.warnings : 0;
-  const page = NAV.find((n) => n.tab === tab)!;
   const published = roster?.status === 'PUBLISHED';
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="brandmark">
-          <span className="logo" aria-hidden="true">
-            SR
-          </span>
-          <span className="bm-text">Smart Roster</span>
-        </div>
+      <div className="masthead">
+        <header className="topbar">
+          <span className="wordmark">Smart Roster</span>
 
-        <div className="monthnav" aria-label="Month">
-          <button onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month">
-            <IconChevronLeft size={16} />
-          </button>
-          <b>{monthLabel(month)}</b>
-          <button onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month">
-            <IconChevronRight size={16} />
-          </button>
-        </div>
+          <div className="monthnav" aria-label="Month">
+            <button onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month">
+              <IconChevronLeft size={16} />
+            </button>
+            <b>{monthLabel(month)}</b>
+            <button onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month">
+              <IconChevronRight size={16} />
+            </button>
+          </div>
 
-        {roster && (
-          <span className={`status-pill ${published ? 'pub' : 'draft'}`}>
-            <span className="dot" />
-            {published ? 'Published' : 'Draft'}
-          </span>
-        )}
+          {roster && <span className={`docstate ${published ? 'pub' : ''}`}>{published ? 'Published' : 'Draft'}</span>}
 
-        {s && (
-          <span className="summary">
-            <span className="cov-part">
-              <b>{s.coveragePct.toFixed(1)}%</b> covered ·{' '}
+          {s && tab !== 'overview' && (
+            <span className="summary">
+              <span className="cov-part">{s.coveragePct.toFixed(1)}% covered, </span>
+              {s.errors > 0 ? (
+                <button className="linkbtn" onClick={() => go('issues')}>
+                  {s.errors} must fix
+                </button>
+              ) : (
+                <span className="ok-text">nothing to fix</span>
+              )}
             </span>
-            {s.errors > 0 ? (
-              <button className="linkbtn" onClick={() => go('issues')}>
-                {s.errors} must-fix
-              </button>
-            ) : (
-              <span className="ok-text">no must-fix issues</span>
-            )}
-          </span>
-        )}
+          )}
 
-        <div className="spacer" />
-        {busy && (
-          <span className="busy small">
-            <IconLoader size={14} /> <span className="busy-t">{busy}</span>
-          </span>
-        )}
-        {roster && (
-          <div className="actions-wide">
-            <button className="btn" disabled={!!busy} onClick={() => setReopt(true)} title="Keep the days before a date and re-plan the rest">
-              <IconRewind size={15} /> Re-optimise
-            </button>
-            <button className="btn" disabled={!!busy} onClick={() => setPublishing(true)}>
-              <IconSend size={15} /> Publish
-            </button>
-            <button className="btn icon" onClick={() => exportCsv(store)} title="Export CSV" aria-label="Export CSV">
-              <IconDownload size={16} />
-            </button>
-          </div>
-        )}
-        <button className="btn primary" disabled={!!busy} onClick={() => generate()}>
-          <span>{roster ? 'Regenerate' : 'Generate roster'}</span>
-        </button>
-        {roster && (
-          <MoreMenu
-            disabled={!!busy}
-            items={[
-              ['Re-optimise from a date…', <IconRewind size={15} />, () => setReopt(true)],
-              ['Publish roster…', <IconSend size={15} />, () => setPublishing(true)],
-              ['Export CSV', <IconDownload size={15} />, () => exportCsv(store)],
-            ]}
-          />
-        )}
-      </header>
-
-      <nav className="sidenav" aria-label="Sections">
-        {['Plan', 'Operate', 'Configure'].map((g) => (
-          <div key={g} className="navgroup">
-            <div className="navlabel">{g}</div>
-            {NAV.filter((n) => n.group === g).map((n) => (
-              <button key={n.tab} className={tab === n.tab ? 'active' : ''} onClick={() => go(n.tab)} aria-current={tab === n.tab ? 'page' : undefined}>
-                {n.icon}
-                <span className="nl">{n.label}</span>
-                <span className="ns">{n.short}</span>
-                {n.tab === 'issues' && issueCount > 0 && <span className={`count ${s && s.errors ? 'err' : ''}`}>{issueCount}</span>}
+          <div className="spacer" />
+          {busy && (
+            <span className="busy small">
+              <IconLoader size={14} /> <span className="busy-t">{busy}</span>
+            </span>
+          )}
+          {roster && (
+            <div className="actions-wide">
+              <button className="btn" disabled={!!busy} onClick={() => setReopt(true)} title="Keep the days before a date and re-plan the rest">
+                Re-optimise
               </button>
-            ))}
-          </div>
-        ))}
-      </nav>
+              <button className="btn" disabled={!!busy} onClick={() => setPublishing(true)}>
+                Publish
+              </button>
+              <button className="btn" onClick={() => exportCsv(store)}>
+                Export CSV
+              </button>
+            </div>
+          )}
+          <button className="btn primary" disabled={!!busy} onClick={() => generate()}>
+            {roster ? 'Regenerate' : 'Generate roster'}
+          </button>
+          {roster && (
+            <MoreMenu
+              disabled={!!busy}
+              items={[
+                ['Re-optimise from a date…', null, () => setReopt(true)],
+                ['Publish…', null, () => setPublishing(true)],
+                ['Export CSV', null, () => exportCsv(store)],
+              ]}
+            />
+          )}
+        </header>
+
+        <nav className="navtabs" aria-label="Sections">
+          {NAV.map((n) => (
+            <button key={n.tab} className={tab === n.tab ? 'active' : ''} onClick={() => go(n.tab)} aria-current={tab === n.tab ? 'page' : undefined}>
+              {n.label}
+              {n.tab === 'issues' && issueCount > 0 && <span className={`count ${s && s.errors ? 'err' : ''}`}>{issueCount}</span>}
+            </button>
+          ))}
+        </nav>
+      </div>
 
       <main className="main">
-        <div className="pagehead">
-          <h1>{tab === 'overview' ? monthLabel(month) : page.label}</h1>
-          {tab !== 'overview' && tab !== 'guide' && <p>{monthLabel(month)}</p>}
-        </div>
         {tab === 'overview' && <Overview openRoster={openRoster} goIssues={() => go('issues')} />}
         {tab === 'roster' && <RosterView lens={lens} setLens={setLens} sel={sel} setSel={(l, v) => setSelState((x) => ({ ...x, [l]: v }))} />}
         {tab === 'issues' && <Issues />}

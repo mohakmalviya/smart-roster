@@ -77,16 +77,16 @@ export function Issues() {
         <b>info</b> cover preferences and fairness. The roster is still valid, but someone should look.
       </p>
       {list.length === 0 && <Empty>Nothing matches these filters. {s.errors === 0 && 'Every mandatory rule is met.'}</Empty>}
-      {list.map((i) => (
-        <div key={i.key} style={{ position: 'relative' }}>
-          {acked.has(i.key) && (
-            <span className="badge neutral" style={{ position: 'absolute', right: 10, top: 10 }}>
-              acknowledged at publish
-            </span>
-          )}
-          <IssueCard issue={i} />
+      {list.length > 0 && (
+        <div className="panel issue-list">
+          {list.map((i) => (
+            <div key={i.key} style={{ position: 'relative' }}>
+              {acked.has(i.key) && <span className="ack">Acknowledged at publish</span>}
+              <IssueCard issue={i} />
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }

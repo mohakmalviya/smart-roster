@@ -105,7 +105,7 @@ export function cellCode(ctx: Ctx, c: Cell | undefined, brandId?: ID): string {
       if (!c.duties.length) return 'SB';
       if (brandId) {
         const own = c.duties.filter((d) => ctx.req.get(d.requirementId)?.brandId === brandId);
-        if (own.length) return own.map((d) => ctx.process.get(ctx.req.get(d.requirementId)!.processId)?.code).join('·');
+        if (own.length) return own.map((d) => ctx.process.get(ctx.req.get(d.requirementId)!.processId)?.code).join('/');
       }
       const brands = [...new Set(c.duties.map((d) => ctx.brand.get(ctx.req.get(d.requirementId)?.brandId ?? '')?.code ?? '?'))];
       return brands.length > 2 ? `${brands[0]}+${brands.length - 1}` : brands.join('+');
@@ -115,7 +115,7 @@ export function cellCode(ctx: Ctx, c: Cell | undefined, brandId?: ID): string {
 
 export function cellTitle(ctx: Ctx, name: string, date: string, c: Cell | undefined): string {
   if (!c) return '';
-  const head = `${name} · ${date}`;
+  const head = `${name}, ${date}`;
   if (c.status !== 'WORK') return `${head}\n${statusText(c)}${c.locked ? '\n(locked by manager)' : ''}`;
   if (!c.duties.length) return `${head}\nWorking (standby or lead duties)`;
   return `${head}\n${c.duties.map((d) => `${reqLabel(ctx, d.requirementId)}${d.backup ? ' (backup)' : ''}`).join('\n')}${c.locked ? '\n(locked by manager)' : ''}`;
@@ -194,7 +194,9 @@ export function Legend() {
 }
 
 /** One validation issue with its explanation and one-click fixes. */
-export function IssueCard({ issue, compact }: { issue: Issue; compact?: boolean }) {
+const SEV_WORD: Record<Severity, string> = { ERROR: 'Must fix', WARNING: 'Warning', INFO: 'Info' };
+
+export function IssueCard({ issue, compact, showSeverity = true }: { issue: Issue; compact?: boolean; showSeverity?: boolean }) {
   const { data, roster, setRoster, notify, ctx } = useStore();
   const [ai, setAi] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
@@ -218,12 +220,9 @@ export function IssueCard({ issue, compact }: { issue: Issue; compact?: boolean 
 
   return (
     <div className={`issue ${issue.severity}`}>
-      <div className="row">
-        <SevBadge s={issue.severity} />
-        <span className="badge outline">{issue.hard ? 'mandatory' : 'preference'}</span>
-        <span className="title" style={{ flex: 1, minWidth: 200 }}>
-          {issue.title}
-        </span>
+      <div className="issue-head">
+        {showSeverity && <span className={`sev ${issue.severity}`}>{SEV_WORD[issue.severity]}</span>}
+        <span className="title">{issue.title}</span>
       </div>
       <div className="detail">{issue.detail}</div>
       {!compact && issue.suggestions.length > 0 && (

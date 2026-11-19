@@ -134,7 +134,7 @@ function ReportUnavailability() {
           </div>
           <div className="row small">
             <span>
-              Coverage after: <b>{preview.v2.summary.coveragePct.toFixed(1)}%</b> ({preview.v2.summary.gapUnits} uncovered head-days)
+              Coverage after: <b>{preview.v2.summary.coveragePct.toFixed(1)}%</b> ({preview.v2.summary.gapUnits} uncovered shifts)
             </span>
             {preview.diff.added.filter((i) => i.severity === 'ERROR').length > 0 && (
               <span className="badge err">{preview.diff.added.filter((i) => i.severity === 'ERROR').length} new must-fix</span>
@@ -213,7 +213,7 @@ function PendingLeaves() {
             <div className="row">
               <b>{e?.name ?? l.employeeId}</b>
               <span className="small">
-                {LEAVE_LABEL[l.type]} · {fmtDate(l.start)}
+                {LEAVE_LABEL[l.type]}, {fmtDate(l.start)}
                 {l.end !== l.start && ` – ${fmtDate(l.end)}`}
               </span>
               {l.note && <span className="small faint">“{l.note}”</span>}

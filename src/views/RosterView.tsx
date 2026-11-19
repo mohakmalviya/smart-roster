@@ -74,7 +74,7 @@ export function RosterView({ lens, setLens, sel, setSel }: { lens: Lens; setLens
         <div className="row">
           <Picker label="Brand" value={brandId} onChange={(v) => setSel('brand', v)} options={data.brands.map((x) => [x.id, `${x.name} (${primaries.size} ${primaries.size === 1 ? 'person' : 'people'})`])} />
           <span className="small muted">
-            Pod {pods.find((p) => p.id === b?.podId)?.name} · processes:{' '}
+            Pod {pods.find((p) => p.id === b?.podId)?.name}. Processes:{' '}
             {reqs.map((r) => (
               <span key={r} style={{ marginRight: 6 }}>
                 <ProcTag ctx={ctx} reqId={r} /> {CAL_SHORT[ctx.req.get(r)!.calendar.preset]}
@@ -98,7 +98,7 @@ export function RosterView({ lens, setLens, sel, setSel }: { lens: Lens; setLens
     const staff = new Set(reqs.flatMap((r) => ctx.primariesOf.get(r) ?? []));
     body = (
       <>
-        <Picker label="Process" value={processId} onChange={(v) => setSel('process', v)} options={data.processes.map((p) => [p.id, `${p.code} · ${p.name}`])} />
+        <Picker label="Process" value={processId} onChange={(v) => setSel('process', v)} options={data.processes.map((p) => [p.id, `${p.name} (${p.code})`])} />
         <RosterGrid groups={[{ label: `Primary staff for ${ctx.process.get(processId)?.code}`, empIds: sortEmps([...staff]) }]} covReqs={reqs} covFirst onEdit={setEditing} />
       </>
     );
@@ -200,8 +200,8 @@ function RosterGrid({
             const names = [...c.primaries, ...c.backups.map((b) => b + '*')].map((x) => (x.endsWith('*') ? ctx.emp.get(x.slice(0, -1))?.name + ' (backup)' : ctx.emp.get(x)?.name));
             return (
               <td key={d}>
-                <div className={`cov ${cls}`} title={`${reqLabel(ctx, r)} · ${fmtDate(d)}\nneeds ${c.required}, scheduled ${c.staffed}\n${names.join('\n')}`}>
-                  {c.required === 0 && !c.staffed ? '·' : `${c.staffed}/${c.required}`}
+                <div className={`cov ${cls}`} title={`${reqLabel(ctx, r)}, ${fmtDate(d)}\nneeds ${c.required}, scheduled ${c.staffed}\n${names.join('\n')}`}>
+                  {c.required === 0 && !c.staffed ? '–' : `${c.staffed}/${c.required}`}
                 </div>
               </td>
             );
@@ -286,13 +286,6 @@ function GroupRows({
         return (
           <tr key={id}>
             <td className="namecol" title={`${e.name} (${e.role.toLowerCase()}, ${e.offsPerWeek} off/week)`}>
-              <span className="avatar" data-role={e.role}>
-                {e.name
-                  .split(' ')
-                  .map((x) => x[0])
-                  .slice(0, 2)
-                  .join('')}
-              </span>
               {e.name}
               {e.role !== 'AGENT' && <span className="role">{e.role === 'LEAD' ? 'lead' : 'floater'}</span>}
             </td>
@@ -376,7 +369,7 @@ function EmployeeCalendar({ empId, onEdit }: { empId: ID; onEdit: (x: { empId: I
         <div className="panel panel-pad stack" style={{ gap: 6 }}>
           <h3>{e.name}</h3>
           <div className="small muted">
-            {e.role.toLowerCase()} · Pod {lead?.name} · {e.offsPerWeek} weekly off(s) · prefers{' '}
+            {e.role.toLowerCase()}, Pod {lead?.name}, {e.offsPerWeek} weekly off(s), prefers{' '}
             {e.preferredOffDays.length ? e.preferredOffDays.map((w) => WEEKDAY_SHORT[w]).join('/') : 'no particular day'} off
           </div>
           <table className="data small">
@@ -448,7 +441,7 @@ function CellEditor({ empId, date, onClose }: { empId: ID; date: ISODate; onClos
     <Drawer
       title={
         <>
-          {e.name} · {fmtDate(date)} {ctx.holidays.get(date) && <span className="badge info">{ctx.holidays.get(date)}</span>}
+          {e.name}, {fmtDate(date)} {ctx.holidays.get(date) && <span className="badge info">{ctx.holidays.get(date)}</span>}
         </>
       }
       onClose={onClose}
@@ -456,8 +449,8 @@ function CellEditor({ empId, date, onClose }: { empId: ID; date: ISODate; onClos
       <div className="small muted">
         Currently: <b>{statusText(cur)}</b>
         {cur.duties.length > 0 && `: ${cur.duties.map((d) => reqLabel(ctx, d.requirementId) + (d.backup ? ' (backup)' : '')).join(', ')}`}
-        {cur.locked && ' · 🔒 locked by manager'}
-        {lv && ` · approved ${lv.type.toLowerCase().replace('_', '-')} ${lv.type === 'COMP_OFF' ? '' : 'leave'}`}
+        {cur.locked && ', locked by manager'}
+        {lv && `, approved ${lv.type.toLowerCase().replace('_', '-')} ${lv.type === 'COMP_OFF' ? '' : 'leave'}`}
       </div>
 
       <div className="stack" style={{ gap: 6 }}>
@@ -477,7 +470,7 @@ function CellEditor({ empId, date, onClose }: { empId: ID; date: ISODate; onClos
           <thead>
             <tr>
               <th />
-              <th>Brand · process</th>
+              <th>Brand and process</th>
               <th>Role</th>
               <th>Today</th>
               <th>Shift</th>

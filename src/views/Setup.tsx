@@ -201,7 +201,7 @@ function BrandEditor({
             <option value="">+ Add process…</option>
             {unused.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.code} · {p.name}
+                {p.name} ({p.code})
               </option>
             ))}
           </select>
@@ -494,7 +494,7 @@ function Employees() {
                     <Num value={e.compOffOpening} min={0} max={30} width={44} onChange={(n) => set(e.id, { compOffOpening: n })} />
                   </td>
                   <td className="muted">
-                    {as.filter((a) => a.role === 'PRIMARY').length} primary · {as.filter((a) => a.role === 'BACKUP').length} backup
+                    {as.filter((a) => a.role === 'PRIMARY').length} primary, {as.filter((a) => a.role === 'BACKUP').length} backup
                   </td>
                   <td>
                     <input type="checkbox" checked={e.active} onChange={(x) => set(e.id, { active: x.target.checked })} />

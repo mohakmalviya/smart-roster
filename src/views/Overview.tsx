@@ -1,19 +1,9 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { fmtDate, monthLabel, weekday, WEEKDAY_LETTER } from '../engine/dates';
 import { useStore } from '../state';
 import { IssueCard, ProcTag } from '../ui/common';
 import { IconChevronLeft, IconChevronRight } from '../ui/icons';
 import type { Lens } from './RosterView';
-
-function Stat({ label, value, sub, tone }: { label: string; value: ReactNode; sub: ReactNode; tone?: 'ok' | 'bad' }) {
-  return (
-    <div className="stat">
-      <div className="label">{label}</div>
-      <div className={`value ${tone ?? ''}`}>{value}</div>
-      <div className="sub">{sub}</div>
-    </div>
-  );
-}
 
 export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: string) => void; goIssues: () => void }) {
   const { ctx, roster, validation, data, generate, busy, month } = useStore();
@@ -76,13 +66,22 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
 
   return (
     <div className="stack">
-      <div className="stats">
-        <Stat label="Coverage" value={`${s.coveragePct.toFixed(1)}%`} tone={s.gapUnits ? 'bad' : 'ok'} sub={`${s.gapUnits} of ${s.requiredUnits} head-days uncovered`} />
-        <Stat label="Must fix" value={s.errors} tone={s.errors ? 'bad' : 'ok'} sub={`${s.warnings} warnings, ${s.infos} info`} />
-        <Stat label="People" value={ctx.emps.length} sub={`${data.pods.length} pods, ${floaters} floaters`} />
-        <Stat label="Brands" value={data.brands.length} sub={`${single} run by one person`} />
-        <Stat label="Brand processes" value={ctx.reqs.length} sub={`${data.processes.length} process types`} />
-      </div>
+      <header className="lede">
+        <h1>
+          {s.gapUnits
+            ? `${monthLabel(month)} has ${s.gapUnits} uncovered ${s.gapUnits === 1 ? 'shift' : 'shifts'}.`
+            : `Every shift in ${monthLabel(month)} is covered.`}
+        </h1>
+        <p>
+          {s.coveragePct.toFixed(1)}% of {s.requiredUnits.toLocaleString()} required shifts have someone on them. {ctx.emps.length} people in{' '}
+          {data.pods.length} pods cover {ctx.reqs.length} processes across {data.brands.length} brands, and {single} of those brands rely on one person.{' '}
+          {s.errors + s.warnings > 0 && (
+            <button className="linkbtn" onClick={goIssues}>
+              {s.errors} must fix, {s.warnings} {s.warnings === 1 ? 'warning' : 'warnings'}
+            </button>
+          )}
+        </p>
+      </header>
 
       <section className="panel panel-pad stack" style={{ gap: 12 }}>
         <div className="sect-head">
@@ -102,9 +101,11 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
               All issues
             </button>
           </div>
-          {top.map((i) => (
-            <IssueCard key={i.key} issue={i} />
-          ))}
+          <div className="panel issue-list">
+            {top.map((i) => (
+              <IssueCard key={i.key} issue={i} showSeverity={false} />
+            ))}
+          </div>
         </section>
       )}
 
@@ -207,7 +208,7 @@ function HeatLegend() {
       </span>
       <span>
         <span className="hsw short" />
-        short
+        nobody on it
       </span>
       <span>
         <span className="hsw closed" />
@@ -224,7 +225,7 @@ function Heatmap({ day, onDay, onBrand }: { day: string; onDay: (d: string) => v
   let prevBrand = '';
   return (
     <div className="heat-wrap">
-      <div className="heat" style={{ gridTemplateColumns: `minmax(132px, 180px) repeat(${ctx.dates.length}, minmax(11px, 1fr))`, minWidth: 150 + ctx.dates.length * 15 }}>
+      <div className="heat" style={{ gridTemplateColumns: `minmax(132px, 180px) repeat(${ctx.dates.length}, minmax(18px, 1fr))`, minWidth: 160 + ctx.dates.length * 21 }}>
         <div className="hcorner" />
         {ctx.dates.map((d) => {
           const wd = weekday(d);
@@ -243,7 +244,7 @@ function Heatmap({ day, onDay, onBrand }: { day: string; onDay: (d: string) => v
           const proc = ctx.process.get(r.processId);
           return (
             <div key={r.id} style={{ display: 'contents' }}>
-              <button className={`hl ${first ? 'first' : ''}`} onClick={() => onBrand(r.brandId)} title={`${brand?.name} · ${proc?.name}`}>
+              <button className={`hl ${first ? 'first' : ''}`} onClick={() => onBrand(r.brandId)} title={`${brand?.name}, ${proc?.name}`}>
                 <span className="hl-b">{first ? brand?.name : ''}</span>
                 <span className="hl-p">{proc?.code}</span>
               </button>
@@ -254,7 +255,7 @@ function Heatmap({ day, onDay, onBrand }: { day: string; onDay: (d: string) => v
                   <div
                     key={d}
                     className={`hc ${cls} ${first ? 'first' : ''} ${d === day ? 'sel' : ''}`}
-                    title={`${brand?.name} · ${proc?.code} · ${fmtDate(d)}\n${c.required === 0 ? 'closed' : `${c.staffed}/${c.required} staffed`}${c.backups.length ? ' (backup cover)' : ''}`}
+                    title={`${brand?.name} ${proc?.code}, ${fmtDate(d)}\n${c.required === 0 ? 'closed' : `${c.staffed}/${c.required} staffed`}${c.backups.length ? ' (backup cover)' : ''}`}
                     onClick={() => onDay(d)}
                   />
                 );

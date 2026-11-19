@@ -232,8 +232,8 @@ export function generateRoster(data: Dataset, month: string, opts: GenerateOptio
     {
       at: new Date().toISOString(),
       text: opts.freezeBefore
-        ? `Re-optimised from ${fmtDate(opts.freezeBefore)} (earlier days and locked cells kept). ${gapUnits} uncovered head-day(s) remain.`
-        : `Generated roster (${ev.evaluations} plans evaluated). ${gapUnits} uncovered head-day(s) remain.`,
+        ? `Re-optimised from ${fmtDate(opts.freezeBefore)} (earlier days and locked cells kept). ${gapUnits} uncovered shift(s) remain.`
+        : `Generated roster (${ev.evaluations} plans evaluated). ${gapUnits} uncovered shift(s) remain.`,
     },
   ];
 
@@ -643,11 +643,11 @@ export function applyAvailabilityChanges(data: Dataset, roster: Roster): RepairR
       if (u && (cur.status !== u.status || cur.duties.length > 0)) {
         const was = describe(ctx, cur);
         cells[e.id][d] = u;
-        changes.push(`${e.name} · ${fmtDate(d)}: ${was} → ${describe(ctx, u)}`);
+        changes.push(`${e.name}, ${fmtDate(d)}: ${was} → ${describe(ctx, u)}`);
         touched.add(d);
       } else if (!u && (cur.status === 'LEAVE' || cur.status === 'COMP_OFF' || cur.status === 'NA')) {
         const next = ctx.holidays.has(d) ? { status: 'PH' as const, duties: [] } : baseWorkingCell(ctx, e.id, d);
-        changes.push(`${e.name} · ${fmtDate(d)}: ${describe(ctx, cur)} → ${describe(ctx, next)} (leave withdrawn)`);
+        changes.push(`${e.name}, ${fmtDate(d)}: ${describe(ctx, cur)} → ${describe(ctx, next)} (leave withdrawn)`);
         cells[e.id][d] = next;
         touched.add(d);
       }
@@ -658,8 +658,8 @@ export function applyAvailabilityChanges(data: Dataset, roster: Roster): RepairR
 
   for (const d of [...touched].sort()) {
     const r = fillGaps(ctx, cells, d);
-    for (const a of r.added) changes.push(`${empName(ctx, a.empId)} · ${fmtDate(d)}: covers ${reqLabel(ctx, a.requirementId)} as backup`);
-    if (r.gapUnits) changes.push(`⚠ ${fmtDate(d)}: ${r.gapUnits} head-day(s) could not be covered automatically`);
+    for (const a of r.added) changes.push(`${empName(ctx, a.empId)}, ${fmtDate(d)}: covers ${reqLabel(ctx, a.requirementId)} as backup`);
+    if (r.gapUnits) changes.push(`⚠ ${fmtDate(d)}: ${r.gapUnits} shift(s) could not be covered automatically`);
   }
 
   return {

@@ -131,7 +131,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         });
         setState((cur) => ({ ...cur, data: opts.data ?? cur.data, rosters: { ...cur.rosters, [res.roster.month]: res.roster } }));
         notify(
-          `${opts.freezeBefore ? 'Re-optimised' : 'Generated'} in ${(res.ms / 1000).toFixed(1)}s after checking ${res.evaluations.toLocaleString()} plans. Uncovered head-days: ${res.gapUnits}.`,
+          `${opts.freezeBefore ? 'Re-optimised' : 'Generated'} in ${(res.ms / 1000).toFixed(1)}s after checking ${res.evaluations.toLocaleString()} plans. Uncovered shifts: ${res.gapUnits}.`,
         );
       } catch (e) {
         notify('Generation failed: ' + String(e));
