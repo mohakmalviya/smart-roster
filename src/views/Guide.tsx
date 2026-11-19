@@ -5,7 +5,7 @@ export function Guide() {
       <p>
         The tool separates two calendars that are easy to mix up: <b>when a client needs cover</b> (each brand process has its own operating days, shift and
         minimum staff) and <b>when a person works</b> (weekly offs, availability, leave, comp-offs). The roster fits the two together, and every place
-        where they don't fit is reported with the reason.
+        where they don’t fit is reported with the reason.
       </p>
 
       <h3>A 2-minute demo</h3>
@@ -18,7 +18,7 @@ export function Guide() {
           leave on 24 Dec and the Delta floater is away over Christmas.
         </li>
         <li>
-          Open <b>Issues</b>. Each gap says who normally covers it, why each of them can't, and what would fix it. Some fixes are one click (“Apply”).
+          Open <b>Issues</b>. Each gap says who normally covers it, why each of them can’t, and what would fix it. Some fixes are one click (“Apply”).
         </li>
         <li>
           In <b>Roster → Brand</b>, pick a single-resource brand, click a cell and change it. The drawer shows what the change breaks or fixes before you apply
@@ -37,7 +37,7 @@ export function Guide() {
       <ul>
         <li>
           <b>Mandatory (Must fix):</b> each operating day of each brand process has at least its minimum staff; nobody works on approved leave, comp-off or
-          unavailable days; nobody holds two clashing shifts; nobody goes over their maximum load; everyone gets their weekly-off entitlement in every Mon–Sun
+          unavailable days; nobody holds two clashing shifts; nobody goes over their maximum load; everyone gets their weekly-off entitlement in every Monday to Sunday
           week.
         </li>
         <li>
@@ -46,7 +46,7 @@ export function Guide() {
         </li>
       </ul>
       <p>
-        The generator never trades a mandatory rule for a preference. When it can't meet every rule, it leaves the gap in the roster and explains
+        The generator never trades a mandatory rule for a preference. When it can’t meet every rule, it leaves the gap in the roster and explains
         why.
       </p>
 
@@ -54,8 +54,8 @@ export function Guide() {
       <ol>
         <li>Fixed facts first: leave, comp-off, availability, and any cell a manager locked.</li>
         <li>
-          The decision is <i>which days each person takes as weekly off</i> in each full Mon–Sun week. Weeks that cross the month boundary use the neighbouring
-          month's roster, so nobody loses or doubles an off.
+          The decision is <i>which days each person takes as weekly off</i> in each full Monday to Sunday week. Weeks that cross the month boundary use the neighbouring
+          month’s roster, so nobody loses or doubles an off.
         </li>
         <li>For each day: primaries work their processes; on public holidays only as many primaries as the client needs work, chosen by fewest holidays worked.</li>
         <li>
@@ -73,7 +73,7 @@ export function Guide() {
         About 80% of brands have one person. Their weekly off is itself a coverage gap whenever the brand operates that day, so the engine plans each off together
         with a named backup. If no backup can take it, it moves the off to a day the brand is closed or less loaded. When a single resource is suddenly
         unavailable, only their days change and the backup list is tried in order. If nobody qualifies, the gap is flagged with the options a manager has:
-        cross-cover from the pod, move someone's off, or review the leave.
+        cross-cover from the pod, move someone’s off, or review the leave.
       </p>
 
       <h3>Assumptions</h3>

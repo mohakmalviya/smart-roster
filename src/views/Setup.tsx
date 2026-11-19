@@ -31,7 +31,7 @@ export function Setup() {
       </div>
       {roster && (
         <div className="banner info row">
-          <span style={{ flex: 1 }}>Changes here apply to the next generation. To bring this month's roster in line now:</span>
+          <span style={{ flex: 1 }}>Changes here apply the next time you generate. To bring this month’s roster in line now:</span>
           <button className="btn sm" onClick={() => notify(`Roster re-checked: ${applyAvailability().length} edit(s).`)}>
             Minimal repair
           </button>
@@ -319,7 +319,7 @@ function ReqRow({ r, update, commit }: { r: Requirement; update: (fn: (d: Datase
         <select value={r.shiftId} onChange={(e) => set({ shiftId: e.target.value })}>
           {data.shifts.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.name} {s.start}–{s.end}
+              {s.name} {s.start} to {s.end}
             </option>
           ))}
         </select>
@@ -441,7 +441,7 @@ function Employees() {
               <th>Name</th>
               <th>Pod</th>
               <th>Role</th>
-              <th title="Weekly offs per Mon–Sun week">Offs/wk</th>
+              <th title="Weekly offs per Monday to Sunday week">Offs/wk</th>
               <th title="Days the person can work at all (hard)">Available days</th>
               <th title="Preferred weekly-off days (soft)">Prefers off</th>
               <th title="Max FTE load in one day">Max load</th>
@@ -826,7 +826,7 @@ function ShiftsAndPolicy() {
           <Num value={data.policy.maxDaySpanHours} min={8} max={16} onChange={(n) => update((d) => ({ ...d, policy: { ...d.policy, maxDaySpanHours: n } }))} />
         </label>
         <div className="small muted">
-          <b>Always mandatory:</b> client coverage on operating days, approved leave and availability, no clashing shifts, load within each person's max, and
+          <b>Always mandatory:</b> client coverage on operating days, approved leave and availability, no clashing shifts, load within each person’s max, and
           their weekly-off entitlement. <b>Preferences:</b> preferred off-days, fair holiday rotation, spreading backup duty, consecutive-day limit.
         </div>
       </div>

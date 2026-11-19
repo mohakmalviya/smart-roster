@@ -301,7 +301,7 @@ export function validate(ctx: Ctx, cells: CellMap): Validation {
           employeeId: e.id,
           date: first,
           title: `${e.name} gets ${got} of ${need} weekly off(s) in week of ${fmtDate(week[0])}`,
-          detail: `Contract: ${e.offsPerWeek} weekly off(s) per Mon–Sun week. Weekly offs are mandatory. If one is cancelled to protect coverage, give a comp-off.`,
+          detail: `Contract: ${e.offsPerWeek} weekly off(s) per Monday to Sunday week. Weekly offs are mandatory. If one is cancelled to protect coverage, give a comp-off.`,
           suggestions: [{ kind: 'CONFIG', text: "Set one of this week's days to Weekly off, or record an approved comp-off later." }],
         });
       }

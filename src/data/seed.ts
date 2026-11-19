@@ -40,11 +40,11 @@ export const CALENDAR_PRESETS: Record<Exclude<CalendarPreset, 'CUSTOM'>, { label
     cal: { preset: 'DAILY_NO_PH', weekdays: [true, true, true, true, true, true, true], publicHolidays: false },
   },
   MON_SAT_NO_PH: {
-    label: 'Mon–Sat, Sundays & public holidays off',
+    label: 'Mon to Sat, Sundays & public holidays off',
     cal: { preset: 'MON_SAT_NO_PH', weekdays: [false, true, true, true, true, true, true], publicHolidays: false },
   },
   MON_FRI_NO_PH: {
-    label: 'Mon–Fri, weekends & public holidays off',
+    label: 'Mon to Fri, weekends & public holidays off',
     cal: { preset: 'MON_FRI_NO_PH', weekdays: [false, true, true, true, true, true, false], publicHolidays: false },
   },
 };

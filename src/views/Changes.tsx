@@ -126,7 +126,7 @@ function ReportUnavailability() {
                 )}
                 {preview.res.changes.map((c, i) => (
                   <tr key={i}>
-                    <td style={c.startsWith('⚠') ? { color: 'var(--err)' } : {}}>{c}</td>
+                    <td className={c.startsWith('Gap on') ? 'err-text' : undefined}>{c}</td>
                   </tr>
                 ))}
               </tbody>
@@ -179,8 +179,8 @@ function ReportUnavailability() {
             </button>
           </div>
           <p className="small faint">
-            Minimal repair keeps everyone else's days. Re-optimise also moves weekly offs from {fmtDate(from)} onwards, which can fix gaps a backup alone
-            cannot, but changes more people's plans.
+            Minimal repair keeps everyone else’s days. Re-optimise also moves weekly offs from {fmtDate(from)} onwards, which can fix gaps a backup alone
+            cannot, but changes more people’s plans.
           </p>
         </div>
       )}
@@ -245,7 +245,7 @@ function PendingLeaves() {
             {preview === l.id && p && (
               <div className="stack small" style={{ gap: 4 }}>
                 {p.res.changes.map((c, i) => (
-                  <div key={i} style={c.startsWith('⚠') ? { color: 'var(--err)' } : {}}>
+                  <div key={i} className={c.startsWith('Gap on') ? 'err-text' : undefined}>
                     {c}
                   </div>
                 ))}

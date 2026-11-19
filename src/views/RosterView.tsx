@@ -6,12 +6,13 @@ import type { Cell, CellStatus, Duty, ID, ISODate } from '../engine/types';
 import { diffIssues, validate } from '../engine/validate';
 import { useStore } from '../state';
 import { cellCode, cellTitle, Drawer, Empty, IssueCard, Legend, ProcTag, statusText } from '../ui/common';
+import { IconLock } from '../ui/icons';
 
 const CAL_SHORT: Record<string, string> = {
   ALL_365: '365 days',
   DAILY_NO_PH: 'daily, PH off',
-  MON_SAT_NO_PH: 'Mon–Sat, PH off',
-  MON_FRI_NO_PH: 'Mon–Fri, PH off',
+  MON_SAT_NO_PH: 'Mon to Sat, PH off',
+  MON_FRI_NO_PH: 'Mon to Fri, PH off',
   CUSTOM: 'custom days',
 };
 
@@ -305,7 +306,7 @@ function GroupRows({
                 <td key={d}>
                   <button className={cls} title={cellTitle(ctx, e.name, fmtDate(d), c)} onClick={() => onEdit({ empId: id, date: d })}>
                     {cellCode(ctx, c, brandId)}
-                    {c?.locked && <span className="lock">🔒</span>}
+                    {c?.locked && <span className="lock" title="Locked by manager"><IconLock size={9} /></span>}
                   </button>
                 </td>
               );
@@ -343,7 +344,7 @@ function EmployeeCalendar({ empId, onEdit }: { empId: ID; onEdit: (x: { empId: I
             return (
               <button key={d} className={`day s-${c?.status}`} onClick={() => onEdit({ empId, date: d })} title={cellTitle(ctx, e.name, fmtDate(d), c)}>
                 <span className="n">
-                  {Number(d.slice(8))} {c?.locked && '🔒'}
+                  {Number(d.slice(8))} {c?.locked && <IconLock size={11} />}
                 </span>
                 {ctx.holidays.get(d) && <span className="small" style={{ color: 'var(--st-ph-fg)' }}>{ctx.holidays.get(d)}</span>}
                 {c?.status === 'WORK' ? (
@@ -494,7 +495,7 @@ function CellEditor({ empId, date, onClose }: { empId: ID; date: ISODate; onClos
                   <td>{prim.includes(r) ? 'primary' : back.includes(r) ? 'backup' : <span style={{ color: 'var(--warn)' }}>not assigned</span>}</td>
                   <td>{cov ? (cov.required === 0 ? <span className="faint">closed</span> : `${cov.staffed}/${cov.required}`) : '—'}</td>
                   <td>
-                    {sh?.name} {sh?.start}–{sh?.end} {clash && <span className="badge warn">clash</span>}
+                    {sh?.name} {sh?.start} to {sh?.end} {clash && <span className="badge warn">clash</span>}
                   </td>
                 </tr>
               );
@@ -552,11 +553,11 @@ function CellEditor({ empId, date, onClose }: { empId: ID; date: ISODate; onClos
             className="btn"
             onClick={() => {
               setRoster(unlockCell(roster!, empId, date));
-              notify('Unlocked. The next generation may change this cell.');
+              notify('Lock removed. Regenerating may change this cell.');
               onClose();
             }}
           >
-            Unlock
+            Remove lock
           </button>
         )}
         <button className="btn ghost" onClick={onClose}>

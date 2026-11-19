@@ -659,7 +659,7 @@ export function applyAvailabilityChanges(data: Dataset, roster: Roster): RepairR
   for (const d of [...touched].sort()) {
     const r = fillGaps(ctx, cells, d);
     for (const a of r.added) changes.push(`${empName(ctx, a.empId)}, ${fmtDate(d)}: covers ${reqLabel(ctx, a.requirementId)} as backup`);
-    if (r.gapUnits) changes.push(`⚠ ${fmtDate(d)}: ${r.gapUnits} shift(s) could not be covered automatically`);
+    if (r.gapUnits) changes.push(`Gap on ${fmtDate(d)}: ${r.gapUnits} shift(s) could not be covered automatically`);
   }
 
   return {

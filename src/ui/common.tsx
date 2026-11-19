@@ -4,7 +4,7 @@ import { reqLabel, type Ctx } from '../engine/context';
 import { WEEKDAY_LETTER } from '../engine/dates';
 import type { Cell, ID, Issue, Severity } from '../engine/types';
 import { useStore } from '../state';
-import { IconClose } from './icons';
+import { IconClose, IconLock } from './icons';
 
 export function Modal({ title, onClose, children, footer }: { title: ReactNode; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
   useEscape(onClose);
@@ -79,7 +79,8 @@ export function ProcTag({ ctx, reqId }: { ctx: Ctx; reqId: ID }) {
   const r = ctx.req.get(reqId);
   const p = r ? ctx.process.get(r.processId) : undefined;
   return (
-    <span className="proc" style={{ background: p?.color ?? '#888' }}>
+    <span className="proc">
+      <i style={{ background: p?.color ?? 'var(--color-muted)' }} />
       {p?.code ?? '?'}
     </span>
   );
@@ -100,7 +101,7 @@ export function cellCode(ctx: Ctx, c: Cell | undefined, brandId?: ID): string {
     case 'NA':
       return 'NA';
     case 'IDLE':
-      return '–';
+      return '';
     case 'WORK': {
       if (!c.duties.length) return 'SB';
       if (brandId) {
@@ -182,13 +183,16 @@ export function Legend() {
         not available
       </span>
       <span>
-        <span className="sw">–</span>no duty (closed)
+        <span className="sw" />no duty (closed)
       </span>
       <span>
         <span className="sw" style={{ boxShadow: 'inset 0 0 0 2px var(--err)' }} />
         has a problem
       </span>
-      <span>🔒 manager-locked</span>
+      <span className="legend-lock">
+        <IconLock size={12} />
+        manager-locked
+      </span>
     </div>
   );
 }
@@ -254,7 +258,7 @@ export function IssueCard({ issue, compact, showSeverity = true }: { issue: Issu
       )}
       {ai && (
         <div className="ai">
-          <div className="ai-head">Claude's explanation</div>
+          <div className="ai-head">Claude’s explanation</div>
           {ai}
         </div>
       )}

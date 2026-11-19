@@ -27,7 +27,7 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
         <div>
           <h2>No roster for {monthLabel(month)} yet</h2>
           <p>
-            Generating plans weekly offs and holiday duty for everyone, then fills gaps from each process's backups. Anything it can't cover shows up under
+            Generating plans weekly offs and holiday duty for everyone, then fills gaps from each process’s backups. Anything it can’t cover shows up under
             Issues with the reason.
           </p>
           <button className="btn primary lg" disabled={!!busy} onClick={() => generate()}>
@@ -67,20 +67,26 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
   return (
     <div className="stack">
       <header className="lede">
-        <h1>
-          {s.gapUnits
-            ? `${monthLabel(month)} has ${s.gapUnits} uncovered ${s.gapUnits === 1 ? 'shift' : 'shifts'}.`
-            : `Every shift in ${monthLabel(month)} is covered.`}
-        </h1>
-        <p>
-          {s.coveragePct.toFixed(1)}% of {s.requiredUnits.toLocaleString()} required shifts have someone on them. {ctx.emps.length} people in{' '}
-          {data.pods.length} pods cover {ctx.reqs.length} processes across {data.brands.length} brands, and {single} of those brands rely on one person.{' '}
-          {s.errors + s.warnings > 0 && (
-            <button className="linkbtn" onClick={goIssues}>
-              {s.errors} must fix, {s.warnings} {s.warnings === 1 ? 'warning' : 'warnings'}
-            </button>
-          )}
-        </p>
+        <div className={`plate ${s.gapUnits ? 'has-gap' : ''}`}>
+          <span className="figure">{s.coveragePct.toFixed(1)}%</span>
+          <span className="plate-unit">of {s.requiredUnits.toLocaleString()} required shifts have someone on them</span>
+        </div>
+        <div className="lede-text">
+          <h1>
+            {s.gapUnits
+              ? `${monthLabel(month)} has ${s.gapUnits} uncovered ${s.gapUnits === 1 ? 'shift' : 'shifts'}.`
+              : `Every shift in ${monthLabel(month)} is covered.`}
+          </h1>
+          <p>
+            {ctx.emps.length} people in {data.pods.length} pods cover {ctx.reqs.length} processes across {data.brands.length} brands, and {single} of those
+            brands rely on one person.{' '}
+            {s.errors + s.warnings > 0 && (
+              <button className="linkbtn" onClick={goIssues}>
+                {s.errors} must fix, {s.warnings} {s.warnings === 1 ? 'warning' : 'warnings'}
+              </button>
+            )}
+          </p>
+        </div>
       </header>
 
       <section className="panel panel-pad stack" style={{ gap: 12 }}>
@@ -109,9 +115,9 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
         </section>
       )}
 
-      <section className="panel panel-pad stack" style={{ gap: 14 }}>
+      <section className="board stack">
         <div className="sect-head">
-          <h3>Who's working</h3>
+          <h3>Who’s working</h3>
           <div className="daypick">
             <button className="btn icon sm" disabled={di <= 0} onClick={() => setDay(ctx.dates[di - 1])} aria-label="Previous day">
               <IconChevronLeft size={15} />
@@ -161,7 +167,7 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
                       {reqs.map((r) => {
                         const c = validation.coverage[r.id][day];
                         return (
-                          <div key={r.id} className="procline">
+                          <div key={r.id} className={`procline ${c.required > 0 && c.staffed < c.required ? 'late' : ''}`}>
                             <ProcTag ctx={ctx} reqId={r.id} />
                             <span style={{ flex: 1, minWidth: 0 }}>
                               {c.required === 0 && c.staffed === 0 ? (
@@ -179,7 +185,11 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
                                 </>
                               )}
                             </span>
-                            {c.required > 0 && <span className={`ratio ${c.staffed < c.required ? 'bad' : ''}`}>{c.staffed}/{c.required}</span>}
+                            {c.required > 0 && (
+                              <span className={`ratio ${c.staffed < c.required ? 'bad' : ''}`}>
+                                {c.staffed}/{c.required}
+                              </span>
+                            )}
                           </div>
                         );
                       })}
@@ -225,7 +235,13 @@ function Heatmap({ day, onDay, onBrand }: { day: string; onDay: (d: string) => v
   let prevBrand = '';
   return (
     <div className="heat-wrap">
-      <div className="heat" style={{ gridTemplateColumns: `minmax(132px, 180px) repeat(${ctx.dates.length}, minmax(18px, 1fr))`, minWidth: 160 + ctx.dates.length * 21 }}>
+      <div
+        className="heat"
+        style={{
+          gridTemplateColumns: `minmax(132px, 180px) repeat(${ctx.dates.length}, minmax(18px, 1fr))`,
+          minWidth: 160 + ctx.dates.length * 21,
+        }}
+      >
         <div className="hcorner" />
         {ctx.dates.map((d) => {
           const wd = weekday(d);
