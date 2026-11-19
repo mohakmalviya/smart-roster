@@ -1,11 +1,26 @@
-import { useState } from 'react';
-import { fmtDate, weekday, WEEKDAY_LETTER } from '../engine/dates';
+import { useState, type ReactNode } from 'react';
+import { fmtDate, monthLabel, weekday, WEEKDAY_LETTER } from '../engine/dates';
 import { useStore } from '../state';
-import { Empty, IssueCard, ProcTag } from '../ui/common';
+import { IssueCard, ProcTag } from '../ui/common';
+import { IconAlert, IconCalendar, IconChevronLeft, IconChevronRight, IconLayers, IconShield, IconTag, IconTarget, IconUsers, IconWand } from '../ui/icons';
 import type { Lens } from './RosterView';
 
+function Kpi({ icon, tone, label, value, sub, children }: { icon: ReactNode; tone: string; label: string; value: ReactNode; sub: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="panel kpi">
+      <div className="kpi-head">
+        <span className={`kpi-ico ${tone}`}>{icon}</span>
+        <span className="label">{label}</span>
+      </div>
+      <div className="value">{value}</div>
+      {children}
+      <div className="sub">{sub}</div>
+    </div>
+  );
+}
+
 export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: string) => void; goIssues: () => void }) {
-  const { ctx, roster, validation, data, generate, busy } = useStore();
+  const { ctx, roster, validation, data, generate, busy, month } = useStore();
   const [day, setDay] = useState<string>(() => {
     const t = new Date().toISOString().slice(0, 10);
     return ctx.dates.includes(t) ? t : ctx.dates[0];
@@ -14,117 +29,152 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
     const reqs = ctx.reqs.filter((r) => r.brandId === b.id).map((r) => r.id);
     return new Set(reqs.flatMap((r) => ctx.primariesOf.get(r) ?? [])).size <= 1;
   }).length;
+  const floaters = ctx.emps.filter((e) => e.role === 'FLOATER').length;
 
   const kpisStatic = (
     <>
-      <div className="panel kpi">
-        <div className="label">Employees</div>
-        <div className="value">{ctx.emps.length}</div>
-        <div className="sub">{data.pods.length} pods · {ctx.emps.filter((e) => e.role === 'FLOATER').length} floaters</div>
-      </div>
-      <div className="panel kpi">
-        <div className="label">Brands</div>
-        <div className="value">{data.brands.length}</div>
-        <div className="sub">{single} single-resource ({Math.round((single / Math.max(1, data.brands.length)) * 100)}%)</div>
-      </div>
-      <div className="panel kpi">
-        <div className="label">Brand processes</div>
-        <div className="value">{ctx.reqs.length}</div>
-        <div className="sub">{data.processes.length} process types</div>
-      </div>
+      <Kpi icon={<IconUsers size={16} />} tone="violet" label="Employees" value={ctx.emps.length} sub={`${data.pods.length} pods · ${floaters} floaters`} />
+      <Kpi
+        icon={<IconTag size={16} />}
+        tone="amber"
+        label="Brands"
+        value={data.brands.length}
+        sub={`${single} single-resource (${Math.round((single / Math.max(1, data.brands.length)) * 100)}%)`}
+      />
+      <Kpi icon={<IconLayers size={16} />} tone="teal" label="Brand processes" value={ctx.reqs.length} sub={`${data.processes.length} process types`} />
     </>
   );
 
   if (!roster || !validation)
     return (
       <div className="stack">
+        <div className="hero panel">
+          <div className="hero-body">
+            <span className="hero-ico">
+              <IconCalendar size={26} />
+            </span>
+            <h2>Plan {monthLabel(month)} in one click</h2>
+            <p>
+              The engine reads every rule in Setup, plans weekly offs, rotates public holidays and assigns backup cover. Anything it cannot solve is listed with
+              the reason and a suggested fix — it never hands you a roster that only looks valid.
+            </p>
+            <button className="btn primary lg" disabled={!!busy} onClick={() => generate()}>
+              <IconWand size={17} /> {busy ? busy : 'Generate roster'}
+            </button>
+          </div>
+          <ol className="hero-steps">
+            <li>
+              <b>Fixed facts first</b>
+              <span>Approved leave, comp-offs, unavailability and locked cells.</span>
+            </li>
+            <li>
+              <b>Plan offs and holidays</b>
+              <span>Weekly offs placed where cover exists; holidays rotated fairly.</span>
+            </li>
+            <li>
+              <b>Cover and explain</b>
+              <span>Backups fill gaps; what is left becomes an explained issue.</span>
+            </li>
+          </ol>
+        </div>
         <div className="kpis">{kpisStatic}</div>
-        <Empty>
-          <h3>No roster for this month yet</h3>
-          <p className="small">The engine plans weekly offs, rotates public holidays and assigns backup cover from the rules in Setup, then lists anything it could not solve.</p>
-          <button className="btn primary" disabled={!!busy} onClick={() => generate()}>
-            Generate roster
-          </button>
-        </Empty>
       </div>
     );
 
   const s = validation.summary;
   const top = validation.issues.filter((i) => i.severity === 'ERROR').slice(0, 4);
   const pods = data.pods;
+  const di = ctx.dates.indexOf(day);
 
   return (
     <div className="stack">
       <div className="kpis">
-        <div className="panel kpi">
-          <div className="label">Coverage</div>
-          <div className="value" style={{ color: s.gapUnits ? 'var(--err)' : 'var(--ok)' }}>
-            {s.coveragePct.toFixed(1)}%
+        <Kpi
+          icon={<IconTarget size={16} />}
+          tone={s.gapUnits ? 'red' : 'green'}
+          label="Coverage"
+          value={<span style={{ color: s.gapUnits ? 'var(--err)' : 'var(--ok)' }}>{s.coveragePct.toFixed(1)}%</span>}
+          sub={`${s.coveredUnits}/${s.requiredUnits} head-days · ${s.gapUnits} uncovered`}
+        >
+          <div className="meter">
+            <span style={{ width: `${Math.min(100, s.coveragePct)}%` }} className={s.gapUnits ? 'has-gap' : ''} />
           </div>
-          <div className="sub">
-            {s.coveredUnits}/{s.requiredUnits} head-days · {s.gapUnits} uncovered
-          </div>
-        </div>
-        <div className="panel kpi">
-          <div className="label">Must-fix issues</div>
-          <div className="value" style={{ color: s.errors ? 'var(--err)' : 'var(--ok)' }}>
-            {s.errors}
-          </div>
-          <div className="sub">
-            {s.warnings} warnings · {s.infos} info
-          </div>
-        </div>
+        </Kpi>
+        <Kpi
+          icon={s.errors ? <IconAlert size={16} /> : <IconShield size={16} />}
+          tone={s.errors ? 'red' : 'green'}
+          label="Must-fix issues"
+          value={<span style={{ color: s.errors ? 'var(--err)' : 'var(--ok)' }}>{s.errors}</span>}
+          sub={`${s.warnings} warnings · ${s.infos} info`}
+        />
         {kpisStatic}
       </div>
 
-      <div className="panel panel-pad stack" style={{ gap: 8 }}>
-        <div className="row">
-          <h3>Coverage heatmap</h3>
-          <span className="small muted">Each cell is one brand process on one day. Click a row to open the brand.</span>
+      <section className="panel panel-pad stack" style={{ gap: 12 }}>
+        <div className="sect-head">
+          <div>
+            <h3>Coverage heatmap</h3>
+            <p className="small muted">Each row is one brand process; each square one day. Click a brand to open it, a day to see who works.</p>
+          </div>
+          <HeatLegend />
         </div>
-        <Heatmap onDay={setDay} onBrand={(b) => openRoster('brand', b)} />
-      </div>
+        <Heatmap day={day} onDay={setDay} onBrand={(b) => openRoster('brand', b)} />
+      </section>
 
       {top.length > 0 && (
-        <div className="stack" style={{ gap: 8 }}>
-          <div className="row">
-            <h3>Needs attention</h3>
-            <div className="spacer" />
-            <button className="btn sm ghost" onClick={goIssues}>
+        <section className="stack" style={{ gap: 10 }}>
+          <div className="sect-head">
+            <div>
+              <h3>Needs attention</h3>
+              <p className="small muted">Mandatory rules the engine could not satisfy, with the reason and the options.</p>
+            </div>
+            <button className="btn sm" onClick={goIssues}>
               All issues →
             </button>
           </div>
           {top.map((i) => (
             <IssueCard key={i.key} issue={i} />
           ))}
-        </div>
+        </section>
       )}
 
-      <div className="panel panel-pad stack" style={{ gap: 10 }}>
-        <div className="row">
-          <h3>Who is working on</h3>
-          <select value={day} onChange={(e) => setDay(e.target.value)}>
-            {ctx.dates.map((d) => (
-              <option key={d} value={d}>
-                {fmtDate(d)}
-                {ctx.holidays.get(d) ? ` — ${ctx.holidays.get(d)}` : ''}
-              </option>
-            ))}
-          </select>
-          {s.gapDays.has(day) && <span className="badge err">coverage gap</span>}
+      <section className="panel panel-pad stack" style={{ gap: 14 }}>
+        <div className="sect-head">
+          <div>
+            <h3>Who is working</h3>
+            <p className="small muted">Every brand process and the people on it for one day. ↺ marks backup cover.</p>
+          </div>
+          <div className="daypick">
+            <button className="btn icon sm" disabled={di <= 0} onClick={() => setDay(ctx.dates[di - 1])} aria-label="Previous day">
+              <IconChevronLeft size={15} />
+            </button>
+            <select value={day} onChange={(e) => setDay(e.target.value)}>
+              {ctx.dates.map((d) => (
+                <option key={d} value={d}>
+                  {fmtDate(d)}
+                  {ctx.holidays.get(d) ? ` — ${ctx.holidays.get(d)}` : ''}
+                </option>
+              ))}
+            </select>
+            <button className="btn icon sm" disabled={di >= ctx.dates.length - 1} onClick={() => setDay(ctx.dates[di + 1])} aria-label="Next day">
+              <IconChevronRight size={15} />
+            </button>
+            {s.gapDays.has(day) ? <span className="badge err">coverage gap</span> : <span className="badge ok">fully covered</span>}
+          </div>
         </div>
         {pods.map((p) => {
           const brands = data.brands.filter((b) => b.podId === p.id);
           const lead = p.leadId ? ctx.emp.get(p.leadId) : undefined;
+          const leadIn = lead && roster.cells[lead.id]?.[day]?.status === 'WORK';
           return (
-            <div key={p.id} className="stack" style={{ gap: 6 }}>
-              <div className="row">
-                <button className="btn sm ghost" onClick={() => openRoster('pod', p.id)}>
-                  <b>Pod {p.name}</b>
+            <div key={p.id} className="stack" style={{ gap: 8 }}>
+              <div className="podhead">
+                <button className="linkbtn" onClick={() => openRoster('pod', p.id)}>
+                  Pod {p.name}
                 </button>
                 {lead && (
                   <span className="small muted">
-                    lead {lead.name} — {roster.cells[lead.id]?.[day]?.status === 'WORK' ? 'in' : 'off'}
+                    Lead {lead.name} · <span className={leadIn ? 'ok-text' : 'faint'}>{leadIn ? 'in today' : 'off today'}</span>
                   </span>
                 )}
               </div>
@@ -134,38 +184,34 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
                   const short = reqs.some((r) => validation.coverage[r.id][day].staffed < validation.coverage[r.id][day].required);
                   return (
                     <div key={b.id} className={`brandcard ${short ? 'short' : ''}`}>
-                      <div className="row" style={{ justifyContent: 'space-between' }}>
-                        <button className="btn sm ghost" style={{ padding: 0 }} onClick={() => openRoster('brand', b.id)}>
-                          <b>{b.name}</b>
+                      <div className="brandcard-head">
+                        <button className="linkbtn" onClick={() => openRoster('brand', b.id)}>
+                          {b.name}
                         </button>
-                        <span className="faint small">{b.code}</span>
+                        <span className="code">{b.code}</span>
                       </div>
                       {reqs.map((r) => {
                         const c = validation.coverage[r.id][day];
                         return (
                           <div key={r.id} className="procline">
                             <ProcTag ctx={ctx} reqId={r.id} />
-                            <span style={{ flex: 1 }}>
+                            <span style={{ flex: 1, minWidth: 0 }}>
                               {c.required === 0 && c.staffed === 0 ? (
                                 <span className="faint">closed</span>
                               ) : (
                                 <>
                                   {c.primaries.map((x) => ctx.emp.get(x)?.name.split(' ')[0]).join(', ')}
                                   {c.backups.length > 0 && (
-                                    <span style={{ color: 'var(--accent)' }}>
+                                    <span className="backup-text">
                                       {c.primaries.length ? ', ' : ''}
                                       {c.backups.map((x) => ctx.emp.get(x)?.name.split(' ')[0] + ' ↺').join(', ')}
                                     </span>
                                   )}
-                                  {c.staffed === 0 && <span style={{ color: 'var(--err)' }}>nobody</span>}
+                                  {c.staffed === 0 && <span className="err-text">nobody</span>}
                                 </>
                               )}
                             </span>
-                            {c.required > 0 && (
-                              <span className={`small ${c.staffed < c.required ? '' : 'faint'}`} style={c.staffed < c.required ? { color: 'var(--err)', fontWeight: 600 } : {}}>
-                                {c.staffed}/{c.required}
-                              </span>
-                            )}
+                            {c.required > 0 && <span className={`ratio ${c.staffed < c.required ? 'bad' : ''}`}>{c.staffed}/{c.required}</span>}
                           </div>
                         );
                       })}
@@ -176,62 +222,81 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
             </div>
           );
         })}
-        <div className="small faint">↺ = covering as backup</div>
-      </div>
+      </section>
     </div>
   );
 }
 
-function Heatmap({ onDay, onBrand }: { onDay: (d: string) => void; onBrand: (b: string) => void }) {
+function HeatLegend() {
+  return (
+    <div className="legend">
+      <span>
+        <span className="hsw ok" />
+        covered
+      </span>
+      <span>
+        <span className="hsw backup" />
+        by a backup
+      </span>
+      <span>
+        <span className="hsw short" />
+        short
+      </span>
+      <span>
+        <span className="hsw closed" />
+        closed
+      </span>
+    </div>
+  );
+}
+
+function Heatmap({ day, onDay, onBrand }: { day: string; onDay: (d: string) => void; onBrand: (b: string) => void }) {
   const { ctx, validation } = useStore();
   if (!validation) return null;
-  const color = (req: number, st: number) =>
-    req === 0 ? (st ? 'var(--st-backup)' : 'var(--panel-2)') : st < req ? 'var(--err)' : st > req ? 'var(--ok-soft, #86efac)' : 'var(--ok)';
+  const gap = validation.summary.gapDays;
+  let prevBrand = '';
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <div className="heat" style={{ gridTemplateColumns: `140px repeat(${ctx.dates.length}, minmax(12px, 1fr))`, minWidth: 140 + ctx.dates.length * 14 }}>
-        <div />
-        {ctx.dates.map((d) => (
-          <button
-            key={d}
-            className="faint"
-            style={{ border: 0, background: 'none', padding: 0, cursor: 'pointer', fontWeight: validation.summary.gapDays.has(d) ? 700 : 400, color: validation.summary.gapDays.has(d) ? 'var(--err)' : undefined }}
-            onClick={() => onDay(d)}
-            title={fmtDate(d)}
-          >
-            {WEEKDAY_LETTER[weekday(d)]}
-          </button>
-        ))}
-        {ctx.reqs.map((r) => (
-          <div key={r.id} style={{ display: 'contents' }}>
-            <button
-              className="small"
-              style={{ border: 0, background: 'none', textAlign: 'left', cursor: 'pointer', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: 0, color: 'var(--text)' }}
-              onClick={() => onBrand(r.brandId)}
-              title={`${ctx.brand.get(r.brandId)?.name} · ${ctx.process.get(r.processId)?.name}`}
-            >
-              {ctx.brand.get(r.brandId)?.name} · {ctx.process.get(r.processId)?.code}
+    <div className="heat-wrap">
+      <div className="heat" style={{ gridTemplateColumns: `minmax(132px, 180px) repeat(${ctx.dates.length}, minmax(11px, 1fr))`, minWidth: 150 + ctx.dates.length * 15 }}>
+        <div className="hcorner" />
+        {ctx.dates.map((d) => {
+          const wd = weekday(d);
+          const cls = ['hd', wd === 0 || wd === 6 ? 'we' : '', gap.has(d) ? 'gap' : '', d === day ? 'sel' : '', ctx.holidays.get(d) ? 'hol' : ''].join(' ');
+          return (
+            <button key={d} className={cls} onClick={() => onDay(d)} title={`${fmtDate(d)}${ctx.holidays.get(d) ? ' — ' + ctx.holidays.get(d) : ''}`}>
+              <span>{Number(d.slice(8))}</span>
+              <span className="wd">{WEEKDAY_LETTER[wd]}</span>
             </button>
-            {ctx.dates.map((d) => {
-              const c = validation.coverage[r.id][d];
-              return (
-                <div
-                  key={d}
-                  className="hc"
-                  style={{ background: color(c.required, c.staffed), opacity: c.required === 0 ? 1 : c.backups.length ? 0.65 : 1, cursor: 'pointer' }}
-                  title={`${ctx.brand.get(r.brandId)?.name} · ${ctx.process.get(r.processId)?.code} · ${fmtDate(d)}\n${c.staffed}/${c.required}${c.backups.length ? ' (backup cover)' : ''}`}
-                  onClick={() => onDay(d)}
-                />
-              );
-            })}
-          </div>
-        ))}
-      </div>
-      <div className="legend" style={{ marginTop: 8 }}>
-        <span><span className="sw" style={{ background: 'var(--ok)' }} />covered</span>
-        <span><span className="sw" style={{ background: 'var(--ok)', opacity: 0.65 }} />covered by a backup</span>
-        <span><span className="sw" style={{ background: 'var(--err)' }} />short</span>
-        <span><span className="sw" style={{ background: 'var(--panel-2)' }} />closed</span>
+          );
+        })}
+        {ctx.reqs.map((r) => {
+          const first = r.brandId !== prevBrand;
+          prevBrand = r.brandId;
+          const brand = ctx.brand.get(r.brandId);
+          const proc = ctx.process.get(r.processId);
+          return (
+            <div key={r.id} style={{ display: 'contents' }}>
+              <button className={`hl ${first ? 'first' : ''}`} onClick={() => onBrand(r.brandId)} title={`${brand?.name} · ${proc?.name}`}>
+                <span className="hl-b">{first ? brand?.name : ''}</span>
+                <span className="hl-p" style={{ color: proc?.color }}>
+                  {proc?.code}
+                </span>
+              </button>
+              {ctx.dates.map((d) => {
+                const c = validation.coverage[r.id][d];
+                const cls = c.required === 0 ? (c.staffed ? 'backup' : 'closed') : c.staffed < c.required ? 'short' : c.backups.length ? 'backup' : 'ok';
+                return (
+                  <div
+                    key={d}
+                    className={`hc ${cls} ${first ? 'first' : ''} ${d === day ? 'sel' : ''}`}
+                    title={`${brand?.name} · ${proc?.code} · ${fmtDate(d)}\n${c.required === 0 ? 'closed' : `${c.staffed}/${c.required} staffed`}${c.backups.length ? ' (backup cover)' : ''}`}
+                    onClick={() => onDay(d)}
+                  />
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

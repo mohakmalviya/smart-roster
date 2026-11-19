@@ -121,7 +121,7 @@ export function RosterView({ lens, setLens, sel, setSel }: { lens: Lens; setLens
             </button>
           ))}
         </div>
-        <span className="small muted">Click any cell to edit it — the change is validated before you apply it.</span>
+        <span className="small muted">Edits are checked against every rule before you apply them.</span>
       </div>
       {body}
       <Legend />
@@ -185,8 +185,9 @@ function RosterGrid({
   const covRows = covReqs.length > 0 && (
     <>
       <tr className="group">
-        <td className="namecol">Coverage (scheduled / required)</td>
-        <td colSpan={ctx.dates.length} />
+        <td colSpan={ctx.dates.length + 1}>
+          <span className="glabel">Coverage — scheduled / required</span>
+        </td>
       </tr>
       {covReqs.map((r) => (
         <tr key={r} className="covrow">
@@ -222,12 +223,11 @@ function RosterGrid({
               return (
                 <th
                   key={d}
-                  className={[hol ? 'hol' : '', wd === 0 ? 'sun' : '', gapDays.has(d) ? 'gapday' : ''].join(' ')}
+                  className={[hol ? 'hol' : '', wd === 0 || wd === 6 ? 'we' : '', gapDays.has(d) ? 'gapday' : ''].join(' ')}
                   title={`${fmtDate(d)}${hol ? ' — ' + hol : ''}${gapDays.has(d) ? '\nCoverage gap on this day' : ''}`}
                 >
-                  {Number(d.slice(8))}
-                  <br />
-                  <span style={{ fontWeight: 400 }}>{WEEKDAY_SHORT[wd].slice(0, 2)}</span>
+                  <span className="dn">{Number(d.slice(8))}</span>
+                  <span className="dw">{WEEKDAY_SHORT[wd].slice(0, 2)}</span>
                 </th>
               );
             })}
@@ -275,16 +275,26 @@ function GroupRows({
   return (
     <>
       <tr className="group">
-        <td className="namecol">{g.label}</td>
-        <td colSpan={ctx.dates.length} />
+        <td colSpan={ctx.dates.length + 1}>
+          <span className="glabel">
+            {g.label} <span className="gcount">{g.empIds.length}</span>
+          </span>
+        </td>
       </tr>
       {g.empIds.map((id) => {
         const e = ctx.emp.get(id)!;
         return (
           <tr key={id}>
             <td className="namecol" title={`${e.name} — ${e.role.toLowerCase()}, ${e.offsPerWeek} off/week`}>
-              {e.name}{' '}
-              <span className="faint small">{e.role === 'LEAD' ? 'lead' : e.role === 'FLOATER' ? 'floater' : ''}</span>
+              <span className="avatar" data-role={e.role}>
+                {e.name
+                  .split(' ')
+                  .map((x) => x[0])
+                  .slice(0, 2)
+                  .join('')}
+              </span>
+              {e.name}
+              {e.role !== 'AGENT' && <span className="role">{e.role === 'LEAD' ? 'lead' : 'floater'}</span>}
             </td>
             {ctx.dates.map((d) => {
               const c = roster!.cells[id]?.[d];

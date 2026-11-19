@@ -1,9 +1,26 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { reqLabel } from './engine/context';
 import { monthLabel, shiftMonth } from './engine/dates';
 import { cloneCells } from './engine/context';
 import { useStore } from './state';
 import { downloadFile, Modal, SevBadge } from './ui/common';
+import {
+  IconAlert,
+  IconBook,
+  IconCalendar,
+  IconCheck,
+  IconChevronLeft,
+  IconChevronRight,
+  IconDownload,
+  IconLoader,
+  IconMore,
+  IconOverview,
+  IconRewind,
+  IconSend,
+  IconSettings,
+  IconSwap,
+  IconWand,
+} from './ui/icons';
 import { Changes } from './views/Changes';
 import { Guide } from './views/Guide';
 import { Issues } from './views/Issues';
@@ -12,6 +29,24 @@ import { RosterView, type Lens } from './views/RosterView';
 import { Setup } from './views/Setup';
 
 type Tab = 'overview' | 'roster' | 'issues' | 'changes' | 'setup' | 'guide';
+
+interface NavItem {
+  tab: Tab;
+  label: string;
+  short: string;
+  icon: ReactNode;
+  group: string;
+  sub: string;
+}
+
+const NAV: NavItem[] = [
+  { tab: 'overview', label: 'Overview', short: 'Overview', icon: <IconOverview />, group: 'Plan', sub: 'Coverage, open problems and who is working on any day.' },
+  { tab: 'roster', label: 'Roster', short: 'Roster', icon: <IconCalendar />, group: 'Plan', sub: 'The month by company, pod, brand, process or person. Click any cell to edit it.' },
+  { tab: 'issues', label: 'Issues', short: 'Issues', icon: <IconAlert />, group: 'Plan', sub: 'Every rule the roster breaks, why it happened, and how to fix it.' },
+  { tab: 'changes', label: 'Changes & approvals', short: 'Changes', icon: <IconSwap />, group: 'Operate', sub: 'Report sickness, approve leave and see who needs to hear about a change.' },
+  { tab: 'setup', label: 'Setup', short: 'Setup', icon: <IconSettings />, group: 'Configure', sub: 'Brands, processes, people, calendars and rules. Everything here is editable.' },
+  { tab: 'guide', label: 'How it works', short: 'Guide', icon: <IconBook />, group: 'Configure', sub: 'What the engine does, which rules are mandatory, and the assumptions behind it.' },
+];
 
 export function App() {
   const store = useStore();
@@ -22,83 +57,147 @@ export function App() {
   const [publishing, setPublishing] = useState(false);
   const [reopt, setReopt] = useState(false);
 
+  const go = (t: Tab) => {
+    setTab(t);
+    window.scrollTo({ top: 0 });
+  };
   const openRoster = (l: Lens, v?: string) => {
     setLens(l);
-    if (v) setSelState((s) => ({ ...s, [l]: v }));
-    setTab('roster');
+    if (v) setSelState((x) => ({ ...x, [l]: v }));
+    go('roster');
   };
 
   const s = validation?.summary;
-  const nav: [Tab, string, string?][] = [
-    ['overview', 'Overview'],
-    ['roster', 'Roster'],
-    ['issues', 'Issues', s ? String(s.errors + s.warnings) : undefined],
-    ['changes', 'Changes & approvals'],
-    ['setup', 'Setup'],
-    ['guide', 'How it works'],
-  ];
+  const issueCount = s ? s.errors + s.warnings : 0;
+  const page = NAV.find((n) => n.tab === tab)!;
+  const published = roster?.status === 'PUBLISHED';
 
   return (
     <div className="app">
       <header className="topbar">
         <div className="brandmark">
-          <span className="logo">SR</span>
-          Smart Roster
+          <span className="logo" aria-hidden="true">
+            <IconCalendar size={17} />
+          </span>
+          <span className="bm-text">
+            Smart Roster
+            <span className="bm-sub">Roster planning</span>
+          </span>
         </div>
-        <div className="row" style={{ gap: 4 }}>
-          <button className="btn sm ghost" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month">
-            ‹
+
+        <div className="monthnav" aria-label="Month">
+          <button onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month">
+            <IconChevronLeft size={16} />
           </button>
-          <b style={{ minWidth: 120, textAlign: 'center' }}>{monthLabel(month)}</b>
-          <button className="btn sm ghost" onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month">
-            ›
+          <b>{monthLabel(month)}</b>
+          <button onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Next month">
+            <IconChevronRight size={16} />
           </button>
         </div>
+
         {roster && (
-          <span className={`badge ${roster.status === 'PUBLISHED' ? 'ok' : 'neutral'}`}>
-            {roster.status === 'PUBLISHED' ? 'Published' : 'Draft'}
+          <span className={`status-pill ${published ? 'pub' : 'draft'}`}>
+            <span className="dot" />
+            {published ? 'Published' : 'Draft'}
           </span>
         )}
+
         {s && (
-          <span className="small muted">
-            {s.coveragePct.toFixed(1)}% covered · {s.errors} must-fix · {s.warnings} warnings
+          <div className="health" title={`${s.coveredUnits} of ${s.requiredUnits} head-days covered`}>
+            <div className="health-top">
+              <span>
+                <b>{s.coveragePct.toFixed(1)}%</b> covered
+              </span>
+              {s.errors > 0 ? (
+                <button className="mini-err" onClick={() => go('issues')}>
+                  {s.errors} must-fix
+                </button>
+              ) : (
+                <span className="mini-ok">
+                  <IconCheck size={12} /> valid
+                </span>
+              )}
+            </div>
+            <div className="meter">
+              <span style={{ width: `${Math.min(100, s.coveragePct)}%` }} className={s.gapUnits ? 'has-gap' : ''} />
+            </div>
+          </div>
+        )}
+
+        <div className="spacer" />
+        {busy && (
+          <span className="busy small">
+            <IconLoader size={14} /> <span className="busy-t">{busy}</span>
           </span>
         )}
-        <div className="spacer" />
-        {busy && <span className="small muted">⏳ {busy}</span>}
-        <button className="btn primary" disabled={!!busy} onClick={() => generate()}>
-          {roster ? 'Regenerate' : 'Generate roster'}
-        </button>
         {roster && (
-          <>
-            <button className="btn" disabled={!!busy} onClick={() => setReopt(true)}>
-              Re-optimise from…
+          <div className="actions-wide">
+            <button className="btn" disabled={!!busy} onClick={() => setReopt(true)} title="Keep the days before a date and re-plan the rest">
+              <IconRewind size={15} /> Re-optimise
             </button>
             <button className="btn" disabled={!!busy} onClick={() => setPublishing(true)}>
-              Publish
+              <IconSend size={15} /> Publish
             </button>
-            <button className="btn ghost" onClick={() => exportCsv(store)}>
-              CSV
+            <button className="btn icon" onClick={() => exportCsv(store)} title="Export CSV" aria-label="Export CSV">
+              <IconDownload size={16} />
             </button>
-          </>
+          </div>
+        )}
+        <button className="btn primary" disabled={!!busy} onClick={() => generate()}>
+          <IconWand size={15} />
+          <span>{roster ? 'Regenerate' : 'Generate roster'}</span>
+        </button>
+        {roster && (
+          <MoreMenu
+            disabled={!!busy}
+            items={[
+              ['Re-optimise from a date…', <IconRewind size={15} />, () => setReopt(true)],
+              ['Publish roster…', <IconSend size={15} />, () => setPublishing(true)],
+              ['Export CSV', <IconDownload size={15} />, () => exportCsv(store)],
+            ]}
+          />
         )}
       </header>
 
-      <nav className="sidenav">
-        {nav.map(([t, label, count]) => (
-          <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
-            {label}
-            {count && count !== '0' && (
-              <span className="badge neutral" style={{ marginLeft: 6 }}>
-                {count}
-              </span>
-            )}
-          </button>
+      <nav className="sidenav" aria-label="Sections">
+        {['Plan', 'Operate', 'Configure'].map((g) => (
+          <div key={g} className="navgroup">
+            <div className="navlabel">{g}</div>
+            {NAV.filter((n) => n.group === g).map((n) => (
+              <button key={n.tab} className={tab === n.tab ? 'active' : ''} onClick={() => go(n.tab)} aria-current={tab === n.tab ? 'page' : undefined}>
+                {n.icon}
+                <span className="nl">{n.label}</span>
+                <span className="ns">{n.short}</span>
+                {n.tab === 'issues' && issueCount > 0 && <span className={`count ${s && s.errors ? 'err' : ''}`}>{issueCount}</span>}
+              </button>
+            ))}
+          </div>
         ))}
+        {s && (
+          <div className="navcard">
+            <div className="navlabel" style={{ padding: 0 }}>
+              {monthLabel(month)}
+            </div>
+            <div className="ring-row">
+              <Ring pct={s.coveragePct} bad={s.gapUnits > 0} />
+              <div className="small">
+                <div>
+                  <b>{s.coveredUnits}</b>
+                  <span className="muted"> / {s.requiredUnits} head-days</span>
+                </div>
+                <div className={s.errors ? 'err-text' : 'ok-text'}>{s.errors ? `${s.errors} must-fix issue${s.errors === 1 ? '' : 's'}` : 'All rules met'}</div>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       <main className="main">
-        {tab === 'overview' && <Overview openRoster={openRoster} goIssues={() => setTab('issues')} />}
+        <div className="pagehead">
+          <h1>{tab === 'overview' ? monthLabel(month) : page.label}</h1>
+          <p>{page.sub}</p>
+        </div>
+        {tab === 'overview' && <Overview openRoster={openRoster} goIssues={() => go('issues')} />}
         {tab === 'roster' && <RosterView lens={lens} setLens={setLens} sel={sel} setSel={(l, v) => setSelState((x) => ({ ...x, [l]: v }))} />}
         {tab === 'issues' && <Issues />}
         {tab === 'changes' && <Changes />}
@@ -110,7 +209,70 @@ export function App() {
       {reopt && <ReoptModal onClose={() => setReopt(false)} />}
       {toast && (
         <div className="toast" role="status">
-          {toast}
+          <span className="toast-ico">
+            <IconCheck size={13} />
+          </span>
+          <span>{toast}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Ring({ pct, bad }: { pct: number; bad: boolean }) {
+  const r = 17;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg width="46" height="46" viewBox="0 0 44 44" className="ring" aria-hidden="true">
+      <circle cx="22" cy="22" r={r} className="ring-bg" />
+      <circle
+        cx="22"
+        cy="22"
+        r={r}
+        className={`ring-fg ${bad ? 'bad' : ''}`}
+        strokeDasharray={c}
+        strokeDashoffset={c * (1 - Math.min(100, pct) / 100)}
+        transform="rotate(-90 22 22)"
+      />
+      <text x="22" y="25.5" textAnchor="middle">
+        {Math.floor(pct)}%
+      </text>
+    </svg>
+  );
+}
+
+function MoreMenu({ items, disabled }: { items: [string, ReactNode, () => void][]; disabled?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener('mousedown', h);
+    return () => window.removeEventListener('mousedown', h);
+  }, [open]);
+  return (
+    <div className="more" ref={ref}>
+      <button className="btn icon" onClick={() => setOpen((o) => !o)} aria-label="More actions" aria-expanded={open}>
+        <IconMore size={18} />
+      </button>
+      {open && (
+        <div className="menu" role="menu">
+          {items.map(([label, icon, fn]) => (
+            <button
+              key={label}
+              role="menuitem"
+              disabled={disabled}
+              onClick={() => {
+                setOpen(false);
+                fn();
+              }}
+            >
+              {icon}
+              {label}
+            </button>
+          ))}
         </div>
       )}
     </div>

@@ -4,6 +4,7 @@ import { reqLabel, type Ctx } from '../engine/context';
 import { WEEKDAY_LETTER } from '../engine/dates';
 import type { Cell, ID, Issue, Severity } from '../engine/types';
 import { useStore } from '../state';
+import { IconClose, IconSpark } from './icons';
 
 export function Modal({ title, onClose, children, footer }: { title: ReactNode; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
   useEscape(onClose);
@@ -13,8 +14,8 @@ export function Modal({ title, onClose, children, footer }: { title: ReactNode; 
         <div className="row">
           <h3>{title}</h3>
           <div className="spacer" />
-          <button className="btn ghost sm" onClick={onClose} aria-label="Close">
-            ✕
+          <button className="btn ghost icon" onClick={onClose} aria-label="Close">
+            <IconClose size={16} />
           </button>
         </div>
         {children}
@@ -31,8 +32,8 @@ export function Drawer({ title, onClose, children }: { title: ReactNode; onClose
       <div className="drawer" role="dialog" aria-modal="true">
         <div className="row">
           <h3 style={{ flex: 1 }}>{title}</h3>
-          <button className="btn ghost sm" onClick={onClose} aria-label="Close">
-            ✕
+          <button className="btn ghost icon" onClick={onClose} aria-label="Close">
+            <IconClose size={16} />
           </button>
         </div>
         {children}
@@ -219,7 +220,7 @@ export function IssueCard({ issue, compact }: { issue: Issue; compact?: boolean 
     <div className={`issue ${issue.severity}`}>
       <div className="row">
         <SevBadge s={issue.severity} />
-        <span className="badge neutral">{issue.hard ? 'mandatory' : 'preference / advisory'}</span>
+        <span className="badge outline">{issue.hard ? 'mandatory' : 'preference'}</span>
         <span className="title" style={{ flex: 1, minWidth: 200 }}>
           {issue.title}
         </span>
@@ -247,12 +248,19 @@ export function IssueCard({ issue, compact }: { issue: Issue; compact?: boolean 
       )}
       {!compact && issue.severity !== 'INFO' && (
         <div className="row">
-          <button className="btn sm ghost" onClick={explain} disabled={aiBusy}>
-            {aiBusy ? 'Asking…' : '✨ Explain with AI'}
+          <button className="btn sm ai-btn" onClick={explain} disabled={aiBusy}>
+            <IconSpark size={14} /> {aiBusy ? 'Asking Claude…' : 'Explain with AI'}
           </button>
         </div>
       )}
-      {ai && <div className="ai">{ai}</div>}
+      {ai && (
+        <div className="ai">
+          <div className="ai-head">
+            <IconSpark size={13} /> AI explanation
+          </div>
+          {ai}
+        </div>
+      )}
     </div>
   );
 }
