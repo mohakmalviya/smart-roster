@@ -47,7 +47,7 @@ export function RosterView({ lens, setLens, sel, setSel }: { lens: Lens; setLens
   const podGroup = (pid: ID): Group => {
     const p = pods.find((x) => x.id === pid);
     const lead = p?.leadId ? ctx.emp.get(p.leadId)?.name : undefined;
-    return { label: `Pod ${p?.name ?? pid}${lead ? ` — lead ${lead}` : ''}`, empIds: sortEmps(ctx.emps.filter((e) => e.podId === pid).map((e) => e.id)) };
+    return { label: `Pod ${p?.name ?? pid}${lead ? `, lead ${lead}` : ''}`, empIds: sortEmps(ctx.emps.filter((e) => e.podId === pid).map((e) => e.id)) };
   };
 
   let body: JSX.Element;
@@ -98,7 +98,7 @@ export function RosterView({ lens, setLens, sel, setSel }: { lens: Lens; setLens
     const staff = new Set(reqs.flatMap((r) => ctx.primariesOf.get(r) ?? []));
     body = (
       <>
-        <Picker label="Process" value={processId} onChange={(v) => setSel('process', v)} options={data.processes.map((p) => [p.id, `${p.code} — ${p.name}`])} />
+        <Picker label="Process" value={processId} onChange={(v) => setSel('process', v)} options={data.processes.map((p) => [p.id, `${p.code} · ${p.name}`])} />
         <RosterGrid groups={[{ label: `Primary staff for ${ctx.process.get(processId)?.code}`, empIds: sortEmps([...staff]) }]} covReqs={reqs} covFirst onEdit={setEditing} />
       </>
     );
@@ -186,7 +186,7 @@ function RosterGrid({
     <>
       <tr className="group">
         <td colSpan={ctx.dates.length + 1}>
-          <span className="glabel">Coverage — scheduled / required</span>
+          <span className="glabel">Coverage (scheduled / required)</span>
         </td>
       </tr>
       {covReqs.map((r) => (
@@ -224,7 +224,7 @@ function RosterGrid({
                 <th
                   key={d}
                   className={[hol ? 'hol' : '', wd === 0 || wd === 6 ? 'we' : '', gapDays.has(d) ? 'gapday' : ''].join(' ')}
-                  title={`${fmtDate(d)}${hol ? ' — ' + hol : ''}${gapDays.has(d) ? '\nCoverage gap on this day' : ''}`}
+                  title={`${fmtDate(d)}${hol ? ', ' + hol : ''}${gapDays.has(d) ? '\nCoverage gap on this day' : ''}`}
                 >
                   <span className="dn">{Number(d.slice(8))}</span>
                   <span className="dw">{WEEKDAY_SHORT[wd].slice(0, 2)}</span>
@@ -285,7 +285,7 @@ function GroupRows({
         const e = ctx.emp.get(id)!;
         return (
           <tr key={id}>
-            <td className="namecol" title={`${e.name} — ${e.role.toLowerCase()}, ${e.offsPerWeek} off/week`}>
+            <td className="namecol" title={`${e.name} (${e.role.toLowerCase()}, ${e.offsPerWeek} off/week)`}>
               <span className="avatar" data-role={e.role}>
                 {e.name
                   .split(' ')
@@ -455,7 +455,7 @@ function CellEditor({ empId, date, onClose }: { empId: ID; date: ISODate; onClos
     >
       <div className="small muted">
         Currently: <b>{statusText(cur)}</b>
-        {cur.duties.length > 0 && ` — ${cur.duties.map((d) => reqLabel(ctx, d.requirementId) + (d.backup ? ' (backup)' : '')).join(', ')}`}
+        {cur.duties.length > 0 && `: ${cur.duties.map((d) => reqLabel(ctx, d.requirementId) + (d.backup ? ' (backup)' : '')).join(', ')}`}
         {cur.locked && ' · 🔒 locked by manager'}
         {lv && ` · approved ${lv.type.toLowerCase().replace('_', '-')} ${lv.type === 'COMP_OFF' ? '' : 'leave'}`}
       </div>
@@ -465,7 +465,7 @@ function CellEditor({ empId, date, onClose }: { empId: ID; date: ISODate; onClos
         <div className="row">
           {STATUSES.map((s) => (
             <button key={s} className={`btn sm ${status === s ? 'primary' : ''}`} onClick={() => setStatus(s)}>
-              {statusText({ status: s, duties: [] }).replace(' — their processes are closed', '')}
+              {statusText({ status: s, duties: [] }).replace(' (their processes are closed)', '')}
             </button>
           ))}
         </div>
@@ -548,7 +548,7 @@ function CellEditor({ empId, date, onClose }: { empId: ID; date: ISODate; onClos
           className="btn primary"
           onClick={() => {
             setRoster(setCell(roster!, empId, date, draft, `Manual edit: ${e.name} on ${fmtDate(date)} → ${statusText(draft)}`));
-            notify(preview.added.some((i) => i.severity === 'ERROR') ? 'Change applied — it created issues that need attention.' : 'Change applied and locked.');
+            notify(preview.added.some((i) => i.severity === 'ERROR') ? 'Change applied. It created issues that need attention.' : 'Change applied and locked.');
             onClose();
           }}
         >
@@ -559,7 +559,7 @@ function CellEditor({ empId, date, onClose }: { empId: ID; date: ISODate; onClos
             className="btn"
             onClick={() => {
               setRoster(unlockCell(roster!, empId, date));
-              notify('Unlocked — the next generation may change this cell.');
+              notify('Unlocked. The next generation may change this cell.');
               onClose();
             }}
           >

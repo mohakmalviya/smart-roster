@@ -106,7 +106,7 @@ function ReportUnavailability() {
           {soleOwner.length > 0 && (
             <>
               {' '}
-              — and the <b>only</b> person on {soleOwner.map((r) => reqLabel(ctx, r)).join(', ')}, so each of those days needs a backup.
+              , and the only person on {soleOwner.map((r) => reqLabel(ctx, r)).join(', ')}, so each of those days needs a backup.
             </>
           )}
           .
@@ -149,7 +149,7 @@ function ReportUnavailability() {
             .slice(0, 5)
             .map((i) => (
               <div key={i.key} className="banner err small">
-                <b>{i.title}</b> — {i.detail}
+                <b>{i.title}.</b> {i.detail}
               </div>
             ))}
           <div className="row">
@@ -251,7 +251,7 @@ function PendingLeaves() {
                 ))}
                 <div>
                   Coverage after approval: <b>{p.v2.summary.coveragePct.toFixed(1)}%</b>
-                  {p.diff.added.some((i) => i.severity === 'ERROR') ? ' — creates gaps that need a decision.' : ' — no new gaps.'}
+                  {p.diff.added.some((i) => i.severity === 'ERROR') ? '. This creates gaps that need a decision.' : '. No new gaps.'}
                 </div>
               </div>
             )}
@@ -280,7 +280,7 @@ function Notifications() {
       <div>
         <h3>Change notifications</h3>
         <p className="small muted">
-          Changes since publishing on {roster.publishedAt ? new Date(roster.publishedAt).toLocaleString() : '—'}. In production these would be sent by email or chat;
+          Changes since publishing on {roster.publishedAt ? new Date(roster.publishedAt).toLocaleString() : 'an unknown date'}. In production these would be sent by email or chat;
           here they are drafted per person.
         </p>
       </div>

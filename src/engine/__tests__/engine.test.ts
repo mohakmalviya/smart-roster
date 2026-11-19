@@ -55,8 +55,8 @@ describe('generated roster: hard rules', () => {
   it('does not hide infeasible days: Kaya Threads on 24 Dec is flagged and explained', () => {
     const gaps = ofType(decVal, 'COVERAGE_GAP').filter((i) => i.requirementId === 'kt-cs' && i.date === '2026-12-24');
     expect(gaps).toHaveLength(1);
-    expect(gaps[0].detail).toMatch(/Gaurav Pillai — planned leave/);
-    expect(gaps[0].detail).toMatch(/Simran Kaur — planned leave/);
+    expect(gaps[0].detail).toMatch(/Gaurav Pillai, planned leave/);
+    expect(gaps[0].detail).toMatch(/Simran Kaur, planned leave/);
     expect(gaps[0].suggestions.length).toBeGreaterThan(0);
   });
 

@@ -308,7 +308,7 @@ const holidays: Holiday[] = [
 ];
 
 const leaves: Leave[] = [
-  { id: 'lv1', employeeId: 'kabir', start: '2026-12-03', end: '2026-12-03', type: 'SICK', status: 'APPROVED', note: 'Runs two brands — both need cover' },
+  { id: 'lv1', employeeId: 'kabir', start: '2026-12-03', end: '2026-12-03', type: 'SICK', status: 'APPROVED', note: 'Runs two brands, and both need cover.' },
   { id: 'lv2', employeeId: 'harsh', start: '2026-12-05', end: '2026-12-05', type: 'COMP_OFF', status: 'APPROVED' },
   { id: 'lv3', employeeId: 'sneha', start: '2026-12-07', end: '2026-12-09', type: 'PLANNED', status: 'APPROVED' },
   { id: 'lv4', employeeId: 'yash', start: '2026-12-10', end: '2026-12-11', type: 'PLANNED', status: 'APPROVED', note: 'Morning-shift brand' },

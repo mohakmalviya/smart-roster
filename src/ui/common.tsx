@@ -117,7 +117,7 @@ export function cellTitle(ctx: Ctx, name: string, date: string, c: Cell | undefi
   if (!c) return '';
   const head = `${name} · ${date}`;
   if (c.status !== 'WORK') return `${head}\n${statusText(c)}${c.locked ? '\n(locked by manager)' : ''}`;
-  if (!c.duties.length) return `${head}\nWorking — standby / lead duties`;
+  if (!c.duties.length) return `${head}\nWorking (standby or lead duties)`;
   return `${head}\n${c.duties.map((d) => `${reqLabel(ctx, d.requirementId)}${d.backup ? ' (backup)' : ''}`).join('\n')}${c.locked ? '\n(locked by manager)' : ''}`;
 }
 
@@ -129,7 +129,7 @@ export function statusText(c: Cell): string {
     LEAVE: 'On leave',
     COMP_OFF: 'Comp-off',
     NA: 'Not available',
-    IDLE: 'No duty — their processes are closed',
+    IDLE: 'No duty (their processes are closed)',
   }[c.status];
 }
 

@@ -301,7 +301,7 @@ export function validate(ctx: Ctx, cells: CellMap): Validation {
           employeeId: e.id,
           date: first,
           title: `${e.name} gets ${got} of ${need} weekly off(s) in week of ${fmtDate(week[0])}`,
-          detail: `Contract: ${e.offsPerWeek} weekly off(s) per Mon–Sun week. Weekly offs are a mandatory rule, not a preference. If one is cancelled to protect coverage, give a comp-off.`,
+          detail: `Contract: ${e.offsPerWeek} weekly off(s) per Mon–Sun week. Weekly offs are mandatory. If one is cancelled to protect coverage, give a comp-off.`,
           suggestions: [{ kind: 'CONFIG', text: "Set one of this week's days to Weekly off, or record an approved comp-off later." }],
         });
       }
@@ -386,8 +386,8 @@ export function validate(ctx: Ctx, cells: CellMap): Validation {
       detail: risky.length
         ? `Approving would leave uncovered: ${risky.join('; ')}.${fine.length ? ' Coverable: ' + fine.join('; ') + '.' : ''}`
         : fine.length
-          ? `Can be approved — backups available: ${fine.join('; ')}.`
-          : 'Can be approved — no coverage impact.',
+          ? `Can be approved. Backups available: ${fine.join('; ')}.`
+          : 'Can be approved with no coverage impact.',
       suggestions: [],
     });
   }
@@ -456,7 +456,7 @@ function explainGap(ctx: Ctx, cells: CellMap, reqId: ID, d: ISODate, need: numbe
         prim
           .map((p) => {
             const c = cells[p]?.[d];
-            return `${empName(ctx, p)} — ${c ? statusReason(ctx, p, d, c) : 'not in roster'}`;
+            return `${empName(ctx, p)}, ${c ? statusReason(ctx, p, d, c) : 'not in roster'}`;
           })
           .join('; ') +
         '.',
@@ -470,18 +470,18 @@ function explainGap(ctx: Ctx, cells: CellMap, reqId: ID, d: ISODate, need: numbe
           .map((b) => {
             const c = cells[b]?.[d];
             const e = ctx.emp.get(b)!;
-            if (!c) return `${empName(ctx, b)} — not in roster`;
-            if (c.duties.some((x) => x.requirementId === reqId)) return `${e.name} — already covering`;
-            if (c.locked) return `${e.name} — cell locked by manager`;
-            if (c.status !== 'WORK' && c.status !== 'IDLE' && c.status !== 'PH') return `${e.name} — ${statusReason(ctx, b, d, c)}`;
+            if (!c) return `${empName(ctx, b)}, not in roster`;
+            if (c.duties.some((x) => x.requirementId === reqId)) return `${e.name}, already covering`;
+            if (c.locked) return `${e.name}, cell locked by manager`;
+            if (c.status !== 'WORK' && c.status !== 'IDLE' && c.status !== 'PH') return `${e.name}, ${statusReason(ctx, b, d, c)}`;
             const ids = c.duties.map((x) => x.requirementId);
             if (!shiftCompatible(ctx, ids, reqId)) {
               const s = ctx.shift.get(r.shiftId);
-              return `${e.name} — shift clash (already on ${ids.map((i) => reqLabel(ctx, i)).join(', ')}; this needs ${s?.name} ${s?.start}–${s?.end})`;
+              return `${e.name}, shift clash (already on ${ids.map((i) => reqLabel(ctx, i)).join(', ')}; this needs ${s?.name} ${s?.start}–${s?.end})`;
             }
             const nl = load(ctx, c) + r.effort;
-            if (nl > e.maxLoad + 1e-9) return `${e.name} — load cap (${load(ctx, c).toFixed(1)} + ${r.effort} > ${e.maxLoad} FTE)`;
-            return `${e.name} — free (not yet assigned)`;
+            if (nl > e.maxLoad + 1e-9) return `${e.name}, load cap (${load(ctx, c).toFixed(1)} + ${r.effort} > ${e.maxLoad} FTE)`;
+            return `${e.name}, free (not yet assigned)`;
           })
           .join('; ') +
         '.',
@@ -543,7 +543,7 @@ function suggestForGap(ctx: Ctx, cells: CellMap, coverage: CoverageMap, reqId: I
       if (!safe) continue;
       out.push({
         kind: 'MOVE_WEEKLY_OFF',
-        text: `Move ${e.name}'s weekly off from ${fmtDate(d)} to ${fmtDate(t)}${tc.duties.length ? ' (their cover that day can be filled by backup)' : ''}${e.preferredOffDays.includes(weekday(d)) ? ' — overrides their preferred day' : ''}`,
+        text: `Move ${e.name}'s weekly off from ${fmtDate(d)} to ${fmtDate(t)}${tc.duties.length ? ' (their cover that day can be filled by backup)' : ''}${e.preferredOffDays.includes(weekday(d)) ? ', which overrides their preferred day' : ''}`,
         action: { type: 'MOVE_OFF', employeeId: id, fromDate: d, toDate: t, requirementId: reqId },
       });
       if (++moves >= 3) break;
@@ -565,7 +565,7 @@ function suggestForGap(ctx: Ctx, cells: CellMap, coverage: CoverageMap, reqId: I
     if (nl > e.maxLoad + 1e-9) continue;
     out.push({
       kind: 'ASSIGN_BACKUP',
-      text: `Cross-cover with ${e.name} (knows ${ctx.process.get(r.processId)?.code} for another brand; not a configured backup here — load → ${nl.toFixed(1)} FTE)`,
+      text: `Cross-cover with ${e.name} (knows ${ctx.process.get(r.processId)?.code} for another brand but isn't a configured backup here; load → ${nl.toFixed(1)} FTE)`,
       action: { type: 'ADD_DUTY', employeeId: e.id, date: d, requirementId: reqId },
     });
     if (++cross >= 2) break;
@@ -574,7 +574,7 @@ function suggestForGap(ctx: Ctx, cells: CellMap, coverage: CoverageMap, reqId: I
   // 4. Leave review
   for (const p of ctx.primariesOf.get(reqId) ?? []) {
     const lv = ctx.leaveOn.get(p)?.get(d);
-    if (lv && lv.type === 'PLANNED') out.push({ kind: 'CANCEL_LEAVE_REVIEW', text: `Discuss moving ${empName(ctx, p)}'s planned leave (${fmtDate(lv.start)}${lv.end !== lv.start ? '–' + fmtDate(lv.end) : ''}) — it was approved without cover.` });
+    if (lv && lv.type === 'PLANNED') out.push({ kind: 'CANCEL_LEAVE_REVIEW', text: `Discuss moving ${empName(ctx, p)}'s planned leave (${fmtDate(lv.start)}${lv.end !== lv.start ? '–' + fmtDate(lv.end) : ''}). It was approved without cover.` });
   }
 
   if (!out.some((s) => s.action))

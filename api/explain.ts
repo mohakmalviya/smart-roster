@@ -20,7 +20,8 @@ Write a short explanation (at most 120 words) in plain English:
 2. Why it happened (the root cause, e.g. one person covers this brand and nobody else is free).
 3. The best next step, picked from the suggested fixes when there are any, and its trade-off.
 Use only the facts provided. Do not invent people, dates or rules. If the facts are not enough to decide, say what the manager should check.
-No headings, no preamble. Plain text, two or three short paragraphs at most.`;
+No headings, no preamble. Plain text, two or three short paragraphs at most.
+Write like a colleague: direct verbs, concrete names and dates, no em dashes, no "it's not X, it's Y" contrasts, no filler such as "it's worth noting".`;
 
 interface Body {
   issue?: { title?: string; detail?: string; suggestions?: string[] };

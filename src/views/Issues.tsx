@@ -73,8 +73,8 @@ export function Issues() {
         </select>
       </div>
       <p className="small muted">
-        <b>Must fix</b> = a mandatory rule is broken (client cover, availability, leave, shift clash, weekly-off entitlement). <b>Warnings</b> and <b>info</b> are
-        preferences and fairness signals: the roster is valid, but someone should look.
+        <b>Must fix</b> means a mandatory rule is broken (client cover, availability, leave, shift clash, weekly-off entitlement). <b>Warnings</b> and{' '}
+        <b>info</b> cover preferences and fairness. The roster is still valid, but someone should look.
       </p>
       {list.length === 0 && <Empty>Nothing matches these filters. {s.errors === 0 && 'Every mandatory rule is met.'}</Empty>}
       {list.map((i) => (

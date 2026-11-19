@@ -201,7 +201,7 @@ function BrandEditor({
             <option value="">+ Add process…</option>
             {unused.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.code} — {p.name}
+                {p.code} · {p.name}
               </option>
             ))}
           </select>
@@ -561,7 +561,7 @@ function PodsAndProcesses() {
                   </td>
                   <td>
                     <select value={p.leadId ?? ''} onChange={(e) => update((d) => ({ ...d, pods: d.pods.map((x) => (x.id === p.id ? { ...x, leadId: e.target.value || null } : x)) }))}>
-                      <option value="">— none —</option>
+                      <option value="">None</option>
                       {data.employees
                         .filter((e) => e.podId === p.id)
                         .map((e) => (

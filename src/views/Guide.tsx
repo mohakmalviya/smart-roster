@@ -4,8 +4,8 @@ export function Guide() {
       <h2>How Smart Roster works</h2>
       <p>
         The tool separates two calendars that are easy to mix up: <b>when a client needs cover</b> (each brand process has its own operating days, shift and
-        minimum staff) and <b>when a person works</b> (weekly offs, availability, leave, comp-offs). The roster is the reconciliation of the two, and every
-        place where they cannot be reconciled is reported with the reason.
+        minimum staff) and <b>when a person works</b> (weekly offs, availability, leave, comp-offs). The roster fits the two together, and every place
+        where they don't fit is reported with the reason.
       </p>
 
       <h3>A 2-minute demo</h3>
@@ -46,8 +46,8 @@ export function Guide() {
         </li>
       </ul>
       <p>
-        The generator never trades a mandatory rule for a preference. When the rules cannot all be met, it does not produce an invalid roster that looks
-        valid. It leaves the gap visible and explains it.
+        The generator never trades a mandatory rule for a preference. When it can't meet every rule, it leaves the gap in the roster and explains
+        why.
       </p>
 
       <h3>How generation works</h3>
@@ -65,7 +65,7 @@ export function Guide() {
           A local search moves offs (one person, then pairs of people in problem weeks) to cut a weighted cost: gaps ≫ consecutive-day runs &gt; holiday
           fairness &gt; idle days &gt; preferences.
         </li>
-        <li>Validation runs on the result. It is the same validation that runs after every manual edit.</li>
+        <li>The result goes through the same validation as every manual edit.</li>
       </ol>
 
       <h3>Single-resource brands</h3>
