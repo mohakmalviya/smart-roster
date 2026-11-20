@@ -17,3 +17,5 @@
 **Results on the sample data (32 people, 20 brands, 50 brand processes).** December generates in about 2 seconds with 99.6% coverage. Its 5 uncovered head-days are deliberately infeasible (a 365-day brand whose only agent and backup are both away at Christmas, and a 5-day leave with a single backup), and each is explained with options. January reaches 100% coverage.
 
 **With more time:** an exact CP-SAT solver to prove infeasibility, planning across months with a rolling window, server storage with roles and real notifications, skill levels, and demand-driven staffing minimums.
+
+Mohak Malviya, [LinkedIn](https://www.linkedin.com/in/mohak-malviya-a6b89b225)
