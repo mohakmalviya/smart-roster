@@ -1,4 +1,4 @@
-/* Hallmark · shape: app screen · genre: modern-minimal · theme: Coral (by request: more beautiful than Wayfind; light only, by request) · redesign: full
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Coral (by request: more beautiful than Wayfind) · night: system preference, or the switch in the top bar · redesign: full
  * nav: a paper top bar, the month as a pressed card, the sections as a cotton card riding in a groove · signature: the coverage board on a cotton sheet, every brand process against every day, gaps inked in red and the chosen day lifted · states: empty month, generating, full; no load or error state in the app logic
  * axes: light/grotesk-sans/warm · posture: restrained · contrast: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E4 S4 R5 V4 · weakest: S, a roster grid can look like any spreadsheet; the records became cotton sheets lit from the left and the month's figure sits on the one ink board */
@@ -9,6 +9,8 @@
 /* ── App tokens: the roster's states, read through the Coral palette ─────────── */
 :root {
   color-scheme: light;
+  --plate: var(--color-board);
+  --plate-ink: var(--color-board-type);
   --bg: var(--color-desk);
   --panel: var(--color-cotton);
   --panel-2: var(--color-paper);
@@ -50,6 +52,90 @@
   --scrim: oklch(21% 0.012 38 / 0.35);
   --masthead-gap: var(--space-md);
   --sheet: var(--edge-stock), var(--cast-stock);
+}
+
+/* Night: a charcoal desk with lighter sheets; follows the system unless the switch in the top bar says otherwise. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --color-paper: oklch(17% 0.005 50);
+    --color-paper-2: oklch(13.5% 0.005 50);
+    --color-paper-3: oklch(25% 0.007 50);
+    --color-desk: oklch(14.5% 0.005 50);
+    --color-cotton: oklch(20.5% 0.006 50);
+    --color-print: oklch(94% 0.006 70);
+    --color-ink: oklch(94% 0.006 70);
+    --color-ink-2: oklch(85% 0.007 65);
+    --color-muted: oklch(69% 0.01 60);
+    --color-rule: oklch(27% 0.006 50);
+    --color-rule-2: oklch(34% 0.008 50);
+    --color-accent-2: oklch(73% 0.14 32);
+    --color-focus: oklch(73% 0.14 32);
+    --color-paid: oklch(73% 0.14 32);
+    --color-board: oklch(94% 0.008 70);
+    --color-board-type: oklch(16% 0.006 50);
+    --color-error: oklch(69% 0.17 27);
+    --color-success: oklch(75% 0.12 150);
+    --plate: oklch(25.5% 0.008 50);
+    --plate-ink: oklch(96% 0.006 70);
+    --err-soft: oklch(26% 0.05 27);
+    --warn: oklch(79% 0.11 75);
+    --warn-soft: oklch(27% 0.04 75);
+    --slate: oklch(77% 0.08 250);
+    --slate-soft: oklch(28% 0.03 250);
+    --st-ph: oklch(31% 0.01 50);
+    --st-ph-fg: oklch(94% 0.006 70);
+    --st-leave: oklch(33% 0.05 70);
+    --st-leave-fg: oklch(89% 0.06 75);
+    --st-co: oklch(30% 0.035 150);
+    --st-co-fg: oklch(85% 0.07 150);
+    --hm-ok: oklch(38% 0.016 60);
+    --scrim: oklch(5% 0.01 40 / 0.65);
+    --edge-stock: inset 0 1px 0 oklch(100% 0 0 / 0.06), 0 0 0 1px oklch(0% 0 0 / 0.5), 0 1px 0 oklch(0% 0 0 / 0.4);
+    --cast-stock: 6px 6px 14px -6px oklch(0% 0 0 / 0.6);
+    --cast-stock-lift: 12px 12px 24px -8px oklch(0% 0 0 / 0.65);
+    --press-groove: inset 1px 1.5px 3px oklch(0% 0 0 / 0.5), inset -1px -1px 0 oklch(100% 0 0 / 0.04), 0 0 0 1px oklch(0% 0 0 / 0.45);
+  }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-paper: oklch(17% 0.005 50);
+  --color-paper-2: oklch(13.5% 0.005 50);
+  --color-paper-3: oklch(25% 0.007 50);
+  --color-desk: oklch(14.5% 0.005 50);
+  --color-cotton: oklch(20.5% 0.006 50);
+  --color-print: oklch(94% 0.006 70);
+  --color-ink: oklch(94% 0.006 70);
+  --color-ink-2: oklch(85% 0.007 65);
+  --color-muted: oklch(69% 0.01 60);
+  --color-rule: oklch(27% 0.006 50);
+  --color-rule-2: oklch(34% 0.008 50);
+  --color-accent-2: oklch(73% 0.14 32);
+  --color-focus: oklch(73% 0.14 32);
+  --color-paid: oklch(73% 0.14 32);
+  --color-board: oklch(94% 0.008 70);
+  --color-board-type: oklch(16% 0.006 50);
+  --color-error: oklch(69% 0.17 27);
+  --color-success: oklch(75% 0.12 150);
+  --plate: oklch(25.5% 0.008 50);
+  --plate-ink: oklch(96% 0.006 70);
+  --err-soft: oklch(26% 0.05 27);
+  --warn: oklch(79% 0.11 75);
+  --warn-soft: oklch(27% 0.04 75);
+  --slate: oklch(77% 0.08 250);
+  --slate-soft: oklch(28% 0.03 250);
+  --st-ph: oklch(31% 0.01 50);
+  --st-ph-fg: oklch(94% 0.006 70);
+  --st-leave: oklch(33% 0.05 70);
+  --st-leave-fg: oklch(89% 0.06 75);
+  --st-co: oklch(30% 0.035 150);
+  --st-co-fg: oklch(85% 0.07 150);
+  --hm-ok: oklch(38% 0.016 60);
+  --scrim: oklch(5% 0.01 40 / 0.65);
+  --edge-stock: inset 0 1px 0 oklch(100% 0 0 / 0.06), 0 0 0 1px oklch(0% 0 0 / 0.5), 0 1px 0 oklch(0% 0 0 / 0.4);
+  --cast-stock: 6px 6px 14px -6px oklch(0% 0 0 / 0.6);
+  --cast-stock-lift: 12px 12px 24px -8px oklch(0% 0 0 / 0.65);
+  --press-groove: inset 1px 1.5px 3px oklch(0% 0 0 / 0.5), inset -1px -1px 0 oklch(100% 0 0 / 0.04), 0 0 0 1px oklch(0% 0 0 / 0.45);
 }
 
 /* ── Base ───────────────────────────────────────────── */
@@ -335,10 +421,10 @@ textarea:focus-visible,
   min-width: 280px;
   max-width: 340px;
   padding: var(--space-lg);
-  background: var(--color-board);
-  color: var(--color-board-type);
+  background: var(--plate);
+  color: var(--plate-ink);
   border-radius: var(--radius-card);
-  box-shadow: var(--cast-stock-lift);
+  box-shadow: var(--edge-stock), var(--cast-stock-lift);
 }
 .plate .figure {
   font-size: calc(var(--text-display) * 2.6);
@@ -1380,8 +1466,8 @@ tr.covrow td.namecol {
   position: fixed;
   bottom: var(--space-lg);
   right: var(--space-lg);
-  background: var(--color-board);
-  color: var(--color-board-type);
+  background: var(--plate);
+  color: var(--plate-ink);
   border-radius: var(--radius-card);
   padding: var(--space-sm) var(--space-md);
   z-index: var(--z-toast);
@@ -1524,43 +1610,67 @@ tr.covrow td.namecol {
   flex: none;
 }
 
-/* ── How it works ───────────────────────────────────── */
-.panel.prose {
-  max-width: 880px;
-  margin: 0 auto;
-  padding: var(--space-xl) var(--space-2xl);
+/* ── How it works: an intro, then one card per topic across the width ── */
+.guide {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(520px, 100%), 1fr));
+  gap: var(--space-md);
+  align-items: stretch;
 }
-@media (max-width: 760px) {
-  .panel.prose {
-    padding: var(--space-lg) var(--space-md);
-  }
+.guide-intro {
+  grid-column: 1 / -1;
+  padding: var(--space-xs) 0 var(--space-sm);
 }
-.prose {
-  max-width: 72ch;
-  line-height: 1.7;
-  font-size: var(--text-md);
-}
-.prose p,
-.prose li {
-  color: var(--text);
-}
-.prose li {
-  margin-bottom: var(--space-2xs);
-}
-.prose h2 {
-  font-size: var(--text-xl);
+.guide-intro h2 {
+  font-size: calc(var(--text-display) * 1.3);
+  line-height: 1.05;
   margin-bottom: var(--space-sm);
 }
-.prose h3 {
-  margin-top: var(--space-lg);
+.guide-intro p {
+  max-width: 90ch;
+  color: var(--muted);
+  font-size: var(--text-md);
+  line-height: 1.6;
+  margin: 0;
+}
+.guide-intro b {
+  color: var(--text);
+}
+.guide-card {
+  padding: var(--space-lg) var(--space-xl);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  min-width: 0;
+}
+.guide-card h3 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-sm);
+}
+.guide-card ol,
+.guide-card ul {
+  margin: 0 0 var(--space-sm);
+  padding-left: var(--space-lg);
+}
+.guide-card li {
   margin-bottom: var(--space-xs);
 }
-.prose code {
+.guide-card li::marker {
+  color: var(--muted);
+}
+.guide-card p {
+  margin: 0 0 var(--space-sm);
+}
+.guide-card code {
   font-family: var(--font-outlier);
   font-size: var(--text-xs);
   background: var(--panel-3);
   padding: var(--space-3xs) var(--space-2xs);
   border-radius: 4px;
+}
+@media (max-width: 760px) {
+  .guide-card {
+    padding: var(--space-md);
+  }
 }
 
 /* ── Top-bar summary ────────────────────────────────── */
@@ -1573,55 +1683,164 @@ tr.covrow td.namecol {
   text-decoration-color: currentColor;
 }
 
-/* ── Empty month ────────────────────────────────────── */
-.emptyplan {
+/* ── Empty month: the start screen and the month ahead ── */
+.startup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.start-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
-  gap: var(--space-xl);
-  padding: var(--space-xl);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+  gap: var(--space-2xl);
+  align-items: center;
+  padding: var(--space-2xl);
 }
-.emptyplan h2 {
-  font-size: calc(var(--text-display) * 1.3);
+.start-copy h2 {
+  font-size: calc(var(--text-display) * 1.5);
+  line-height: 1.04;
   margin-bottom: var(--space-sm);
+  overflow-wrap: break-word;
+  min-width: 0;
 }
-.emptyplan p {
+.start-copy > p {
   color: var(--muted);
   font-size: var(--text-md);
-  max-width: 54ch;
+  max-width: 52ch;
   margin-bottom: var(--space-lg);
 }
-.inputs {
-  margin: 0;
+.start-steps {
+  list-style: none;
+  counter-reset: step;
+  margin: var(--space-xl) 0 0;
+  padding: var(--space-lg) 0 0;
+  border-top: var(--rule-hair) solid var(--border);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-content: start;
-  background: var(--color-board);
-  color: var(--color-board-type);
-  border-radius: var(--radius-card);
-  padding: var(--space-lg);
-  box-shadow: var(--cast-stock-lift);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-lg);
 }
-.inputs dt {
-  opacity: 0.72;
-  padding: var(--space-xs) 0;
-  border-bottom: var(--rule-hair) solid color-mix(in srgb, var(--color-board-type) 14%, transparent);
+.start-steps li {
+  counter-increment: step;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
 }
-.inputs dd {
-  margin: 0;
-  padding: var(--space-xs) 0;
-  text-align: right;
+.start-steps li::before {
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-bottom: var(--space-xs);
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
   font-family: var(--font-outlier);
-  border-bottom: var(--rule-hair) solid color-mix(in srgb, var(--color-board-type) 14%, transparent);
+  font-size: var(--text-xs);
+  color: var(--text);
 }
-.inputs dd .faint {
-  color: inherit;
-  opacity: 0.6;
-  font-family: var(--font-body);
-}
-.inputs .caption {
-  grid-column: 1 / -1;
+.start-steps b {
+  display: block;
+  color: var(--text);
   font-weight: 600;
-  padding-bottom: var(--space-xs);
+  margin-bottom: var(--space-3xs);
+}
+.start-figures {
+  background: var(--plate);
+  color: var(--plate-ink);
+  border-radius: var(--radius-card);
+  box-shadow: var(--edge-stock), var(--cast-stock-lift);
+  padding: var(--space-lg);
+}
+.start-figures .caption {
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+}
+.sfig-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-lg) var(--space-md);
+}
+.sfig-n {
+  display: block;
+  font-size: calc(var(--text-display) * 1.6);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.sfig-l {
+  display: block;
+  margin-top: var(--space-2xs);
+  font-size: var(--text-xs);
+  opacity: 0.72;
+}
+.month-ahead .sect-head {
+  margin-bottom: var(--space-md);
+}
+.mcal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-2xs);
+}
+.mcal .mhd {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-weight: 500;
+  padding: 0 var(--space-xs) var(--space-2xs);
+}
+.mday {
+  min-height: 76px;
+  padding: var(--space-xs);
+  border-radius: var(--radius-input);
+  background: var(--panel-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  font-size: var(--text-xs);
+  min-width: 0;
+}
+.mday.we {
+  background: var(--panel-3);
+}
+.mday.hol {
+  background: var(--st-ph);
+  color: var(--st-ph-fg);
+  box-shadow: none;
+}
+.mday-n {
+  font-family: var(--font-outlier);
+  font-size: var(--text-sm);
+}
+.mday-tag {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mday-leave {
+  margin-top: auto;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-pill);
+  background: var(--st-leave);
+  color: var(--st-leave-fg);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mpad {
+  min-height: 76px;
+}
+
+/* Theme switch */
+.theme-switch {
+  color: var(--muted);
+}
+.theme-switch:hover {
+  color: var(--text);
 }
 
 /* ── Responsive ─────────────────────────────────────── */
@@ -1677,9 +1896,21 @@ tr.covrow td.namecol {
     bottom: var(--space-md);
     max-width: none;
   }
-  .emptyplan {
+  .start-hero {
     grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-lg);
     padding: var(--space-lg);
+  }
+  .start-steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+  }
+  .mday,
+  .mpad {
+    min-height: 56px;
+  }
+  .mday-tag {
+    display: none;
   }
   .board > .stack,
   .panel-pad {

@@ -22,39 +22,83 @@ export function Overview({ openRoster, goIssues }: { openRoster: (l: Lens, v?: s
     const inMonth = (from: string, to: string) => from <= ctx.dates[ctx.dates.length - 1] && to >= ctx.dates[0];
     const leaves = data.leaves.filter((l) => inMonth(l.start, l.end));
     const approved = leaves.filter((l) => l.status === 'APPROVED').length;
+    const holidayCount = ctx.dates.filter((d) => ctx.holidays.has(d)).length;
     return (
-      <div className="panel emptyplan">
-        <div>
-          <h2>No roster for {monthLabel(month)} yet</h2>
-          <p>
-            Generating plans weekly offs and holiday duty for everyone, then fills gaps from each process’s backups. Anything it can’t cover shows up under
-            Issues with the reason.
-          </p>
-          <button className="btn primary lg" disabled={!!busy} onClick={() => generate()}>
-            {busy ? busy : `Generate ${monthLabel(month)}`}
-          </button>
-        </div>
-        <dl className="inputs">
-          <div className="caption">Inputs from Setup</div>
-          <dt>People</dt>
-          <dd>
-            {ctx.emps.length} <span className="faint">({floaters} floaters)</span>
-          </dd>
-          <dt>Pods</dt>
-          <dd>{data.pods.length}</dd>
-          <dt>Brands</dt>
-          <dd>
-            {data.brands.length} <span className="faint">({singlePct}% single-person)</span>
-          </dd>
-          <dt>Brand processes</dt>
-          <dd>{ctx.reqs.length}</dd>
-          <dt>Public holidays</dt>
-          <dd>{ctx.dates.filter((d) => ctx.holidays.has(d)).length}</dd>
-          <dt>Leave requests</dt>
-          <dd>
-            {leaves.length} <span className="faint">({approved} approved)</span>
-          </dd>
-        </dl>
+      <div className="startup">
+        <section className="panel start-hero">
+          <div className="start-copy">
+            <h2>No roster for {monthLabel(month)} yet</h2>
+            <p>One click plans the whole month for {ctx.emps.length} people and shows every day it can’t cover, with the reason.</p>
+            <button className="btn primary lg" disabled={!!busy} onClick={() => generate()}>
+              {busy ? busy : `Generate ${monthLabel(month)}`}
+            </button>
+            <ol className="start-steps">
+              <li>
+                <b>Plan days off</b>Weekly offs and holiday duty for everyone, on their preferred days where cover allows.
+              </li>
+              <li>
+                <b>Fill the gaps</b>Each process’s backups step in when its usual person is off.
+              </li>
+              <li>
+                <b>Flag the rest</b>Days nobody can cover go to Issues with the cause and the options.
+              </li>
+            </ol>
+          </div>
+          <div className="start-figures">
+            <div className="caption">From Setup</div>
+            <div className="sfig-grid">
+              <div>
+                <span className="sfig-n">{ctx.emps.length}</span>
+                <span className="sfig-l">people, {floaters} of them floaters</span>
+              </div>
+              <div>
+                <span className="sfig-n">{data.pods.length}</span>
+                <span className="sfig-l">pods, each with a lead</span>
+              </div>
+              <div>
+                <span className="sfig-n">{data.brands.length}</span>
+                <span className="sfig-l">brands, {singlePct}% run by one person</span>
+              </div>
+              <div>
+                <span className="sfig-n">{ctx.reqs.length}</span>
+                <span className="sfig-l">brand processes to cover</span>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="panel panel-pad month-ahead">
+          <div className="sect-head">
+            <div>
+              <h3>{monthLabel(month)} ahead</h3>
+              <p className="small muted">
+                {holidayCount} public {holidayCount === 1 ? 'holiday' : 'holidays'} and {approved} approved leave {approved === 1 ? 'request' : 'requests'}
+                {leaves.length > approved ? `, ${leaves.length - approved} still pending` : ''}. These are fixed before the roster is built.
+              </p>
+            </div>
+          </div>
+          <div className="mcal">
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((w) => (
+              <div key={w} className="mhd">
+                {w}
+              </div>
+            ))}
+            {Array.from({ length: (weekday(ctx.dates[0]) + 6) % 7 }, (_, i) => (
+              <div key={'pad' + i} className="mpad" />
+            ))}
+            {ctx.dates.map((d) => {
+              const wd = weekday(d);
+              const hol = ctx.holidays.get(d);
+              const away = leaves.filter((l) => l.status === 'APPROVED' && l.start <= d && l.end >= d).length;
+              return (
+                <div key={d} className={['mday', wd === 0 || wd === 6 ? 'we' : '', hol ? 'hol' : ''].join(' ')} title={fmtDate(d) + (hol ? `, ${hol}` : '')}>
+                  <span className="mday-n">{Number(d.slice(8))}</span>
+                  {hol && <span className="mday-tag">{hol}</span>}
+                  {away > 0 && <span className="mday-leave">{away} on leave</span>}
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </div>
     );
   }

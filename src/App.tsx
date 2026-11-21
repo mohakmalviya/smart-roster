@@ -4,7 +4,7 @@ import { monthLabel, shiftMonth } from './engine/dates';
 import { cloneCells } from './engine/context';
 import { useStore } from './state';
 import { downloadFile, Modal, SevBadge } from './ui/common';
-import { IconChevronLeft, IconChevronRight, IconLoader, IconMore } from './ui/icons';
+import { IconChevronLeft, IconChevronRight, IconLoader, IconMoon, IconMore, IconSun } from './ui/icons';
 import { Changes } from './views/Changes';
 import { Guide } from './views/Guide';
 import { Issues } from './views/Issues';
@@ -96,6 +96,7 @@ export function App() {
               </button>
             </div>
           )}
+          <ThemeSwitch />
           <button className="btn primary" disabled={!!busy} onClick={() => generate()}>
             {roster ? 'Regenerate' : 'Generate roster'}
           </button>
@@ -303,4 +304,28 @@ function exportCsv(store: ReturnType<typeof useStore>) {
     }),
   ]);
   downloadFile(`roster-${month}.csv`, [head, ...rows].map((r) => r.map(esc).join(',')).join('\n'), 'text/csv');
+}
+
+function ThemeSwitch() {
+  const systemDark = () => typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
+  const [dark, setDark] = useState(() => {
+    const t = document.documentElement.dataset.theme;
+    return t ? t === 'dark' : systemDark();
+  });
+  const flip = () => {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.dataset.theme = next ? 'dark' : 'light';
+    try {
+      localStorage.setItem('smart-roster:theme', next ? 'dark' : 'light');
+    } catch {
+      /* storage unavailable: the choice lasts for this visit */
+    }
+  };
+  const label = dark ? 'Switch to light mode' : 'Switch to dark mode';
+  return (
+    <button className="btn ghost icon theme-switch" onClick={flip} title={label} aria-label={label}>
+      {dark ? <IconSun /> : <IconMoon />}
+    </button>
+  );
 }
