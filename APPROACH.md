@@ -1,21 +1,51 @@
 # Approach note
 
-**Problem as I read it.** Most brands depend on one person, so every weekly off, holiday and sick day can leave a client without cover. The tool has to plan cover for each absence in advance. When cover is impossible, it should say so and explain why instead of quietly producing a roster that looks fine.
+## The problem, as I understood it
 
-**Key decision 1: separate "when the client needs cover" from "when a person works".** Each brand process is its own requirement, with its own calendar, shift, staffing minimums and effort. Each person has their own availability, weekly-off contract and leave. The roster reconciles the two, and every place where they can't be reconciled becomes an explained issue. Single-resource brands are derived from the data (one primary), so they stay correct as the team changes.
+Most of the brands depend on one person. So every weekly off, public holiday and sick day can leave a client with nobody. The roster has to plan cover for each absence ahead of time. And when cover really isn't possible, it should say so and say why, not hand over a roster that only looks complete.
 
-**Key decision 2: an optimiser that shows its reasons.** The decision variables are the weekly-off days in each full Mon–Sun week. A constructive pass builds a roster: fixed leave, then primaries, then a fair public-holiday rotation, then backups ranked by availability, shift compatibility, load and fairness. Local search then moves offs, singly and in pairs, to minimise a weighted cost in which a coverage gap outweighs everything else. Hard rules (leave, availability, shift clashes, load caps, weekly-off entitlement) are never traded away. One validator runs after generation and after every manual edit, and it attaches a plain-language reason and concrete fixes to each issue.
+## Decision 1: keep the client's calendar and the people's calendar apart
 
-**Key decision 3: repair the roster after a change.** After publishing, people have planned around the roster. Reporting a sick day changes only the affected person-days and refills the gaps from backups; the preview shows the coverage impact first. Re-optimising the rest of the month is available, but only as an explicit choice. Manager edits are locked so the engine never overrides a person.
+I kept running into two different questions: when does a client need someone, and when can a person work? So they're separate in the data.
 
-**Mandatory vs preference.** Must-fix covers client coverage, leave and availability, shift clashes, overload and the weekly-off entitlement. Warnings and info cover the consecutive-day limit, holiday fairness, preferred off-days, stretched backups, pending-leave risk and comp-off balance. Publishing with must-fix issues needs an explicit, recorded acknowledgement. Each pod lead approves their pod's month first; the approval stores a hash of that pod's cells, so any later edit voids it, and publishing without every approval needs a second acknowledgement.
+Each brand's type of work (support, abandoned carts, delivery problems, retention) is its own requirement, with its own days, shift, minimum staff and size. Each person has their own working days, weekly-off allowance and leave. The roster fits the two together, and wherever they don't fit, you get an issue that explains why. Whether a brand is "one person" isn't stored anywhere. The app works it out from who is assigned, so it stays right when the team changes.
 
-**AI where it helps.** "Explain with AI" sends the engine's own findings to Claude and asks for a short, manager-friendly explanation and recommendation. It's given only those facts and can't change the roster, so it can't contradict the rules engine.
+## Decision 2: a planner that can explain itself
 
-**Stack.** React + TypeScript (Vite). The engine is plain TypeScript with unit tests, and generation runs in a Web Worker. Setup and rosters are stored in Postgres (Neon) through two Vercel functions, so everyone sees the same data. Every save carries a version, and a stale one is refused rather than silently overwriting someone else's work. A third function handles the AI call.
+The main choice the planner makes is which day each person takes off in each Monday-to-Sunday week. First it builds a full roster in order: fixed leave, then each brand's own people, then a fair rotation for public holidays, then backups, picked by who's free, on a matching shift, not overloaded and due a turn. After that it keeps trying to move offs around, one person at a time and then two together, and keeps any change that makes things better. A client left uncovered costs far more than anything else, so it's always fixed first. Some rules are never traded away at all: leave, availability, shift clashes, workload limits and weekly offs.
 
-**Results on the sample data (32 people, 20 brands, 50 brand processes).** December generates in about 2 seconds with 99.6% coverage. Its 5 uncovered head-days are deliberately infeasible (a 365-day brand whose only agent and backup are both away at Christmas, and a 5-day leave with a single backup), and each is explained with options. January reaches 100% coverage.
+The same checker runs after generation and after every manual edit. It gives each problem a plain reason and real options to fix it.
 
-**With more time:** an exact CP-SAT solver to prove infeasibility, planning across months with a rolling window, logins and roles, real notifications, skill levels, and demand-driven staffing minimums.
+## Decision 3: after publishing, change as little as possible
+
+Once a roster is published, people have made plans around it. So when someone reports a sick day, the tool only changes that person's days and fills the gaps from backups, and you see the effect on coverage before saving. Re-planning the rest of the month is there too, but only if the manager picks it. Any day a manager edits by hand gets locked, so the tool never overrides them.
+
+## What must be fixed and what's only a preference
+
+Must fix: a client without cover, someone working on leave or on a day they can't work, clashing shifts, too much work, and missing weekly offs. Warnings and info: too many days in a row, unfair holiday duty, preferred days off not given, backups stretched thin, pending leave that would cause a gap, and comp-off balances.
+
+Publishing with must-fix issues still open means ticking a box saying you know, and that's recorded. Each pod lead also approves their pod's month first. The approval stores a fingerprint of that pod's roster, so any later change cancels it. Publishing without every pod approved needs a second tick.
+
+## Where AI helps
+
+"Explain with AI" sends the engine's own findings for one issue to Claude and asks for a short explanation and a suggestion a manager can act on. It only gets those facts and can't change the roster, so it can't contradict the rules.
+
+## How it's built
+
+React and TypeScript with Vite. The scheduling engine is plain TypeScript with its own tests, and generation runs in a Web Worker so the page doesn't freeze. Setup and rosters are stored in Postgres on Neon, through two small Vercel functions, so everyone sees the same data. Every save carries a version number. If someone else saved first, the old save is refused instead of quietly overwriting their work. A third function makes the AI call.
+
+## Results on the sample data
+
+The sample has 32 people, 20 brands and 50 brand processes. December generates in about 2 seconds and covers 99.6% of required shifts. The 5 it can't cover are left uncovered on purpose, and the app explains each one with options:
+
+- Three at Kaya Threads over Christmas. Gaurav, its only agent, is on leave on the 24th, and Simran, the backup, is away from the 21st to the 26th.
+- One at GlowVeda on 15 Dec. Kavya is on five days of leave and the only backup has that day off.
+- One at Aqua Pure on 14 Dec. Ishaan, the primary, has a weekly off and the backup is already on a clashing shift.
+
+January reaches 100%.
+
+## With more time
+
+A proper solver (CP-SAT) to prove when a gap really can't be filled, planning across month boundaries, logins and roles, real email or Slack notifications, skill levels, and minimum staffing based on expected ticket volume.
 
 Mohak Malviya, [LinkedIn](https://www.linkedin.com/in/mohak-malviya-a6b89b225)

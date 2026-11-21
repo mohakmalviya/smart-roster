@@ -1,110 +1,133 @@
+<div align="center">
+
 # Smart Roster
 
-A browser-based roster manager for a brand-support operation: employees in pods, brands owned by pods, and several processes (customer support, accounts, NDR, returns) run for each brand on its own calendar. It generates a monthly roster, checks it against every rule, explains each conflict it cannot solve, and handles changes after the roster is published with the fewest possible edits.
+**Plans a month of shifts for a brand-support team, and tells you exactly where it can't.**
 
-- **Live demo:** https://smart-roster-rosy.vercel.app
-- **Demo video:** _add link_
-- **Approach note:** [APPROACH.md](APPROACH.md)
-- **Author:** Mohak Malviya, [LinkedIn](https://www.linkedin.com/in/mohak-malviya-a6b89b225)
+[Open the live app](https://smart-roster-rosy.vercel.app) &nbsp;&nbsp;|&nbsp;&nbsp; [Approach note](APPROACH.md) &nbsp;&nbsp;|&nbsp;&nbsp; Demo video: _coming soon_
 
-## What it does
+<br>
 
-| Requirement | Where |
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screens/overview-dark.png">
+  <img src="docs/screens/overview.png" alt="Overview tab for December 2026: 99.6% of 1,386 shifts covered, with a coverage grid of every brand's processes by day" width="100%">
+</picture>
+
+</div>
+
+<br>
+
+## The problem
+
+A support company runs customer operations for 20 online brands. Each brand has up to four kinds of work: **Customer Support (CS)**, **Abandoned Cart Conversion (ACC)**, **Non-Delivery Reports (NDR)** and **Retention (RET)**. Each one has its own days. Some run all 365 days, some skip public holidays, some only run Monday to Friday.
+
+The 32 staff are split into four pods. Each pod has a lead and a floater who covers for others. The catch is that 16 of the 20 brands have only one person. When that person takes a weekly off, falls sick or goes on leave, someone else has to step in, or the client gets nobody that day.
+
+Smart Roster plans the whole month around that. It gives everyone their weekly offs, rotates public holidays fairly and puts a backup in for every absence it can. Anything it can't cover stays in red, with the reason.
+
+> **Try it in 30 seconds:** open the [live app](https://smart-roster-rosy.vercel.app), press **Generate roster**, and look at the red cells around Christmas. Kaya Threads has one agent, Gaurav, who is on leave on 24 Dec. The backup, Simran, is away from the 21st to the 26th. Nobody else knows the brand, so the tool shows the gap instead of hiding it.
+
+## A tour of the app
+
+| | |
 |---|---|
-| Central data for employees, brands, processes, pods, leads and allocations | Setup tab (all editable); sample data has 32 employees, 20 brands, 4 pods |
-| ~80% single-resource brands; the rest with 2–3 people on separate or shared processes | Sample data: 16 of 20 brands are single-resource; UrbanKicks, GlowVeda, BrewHaus and PetPal are teams |
-| Configurable working days per brand and per process | Each brand process has its own calendar: 365 days, daily with public holidays off, Mon–Sat, Mon–Fri, or custom weekdays; plus per-weekday and per-date minimum staffing |
-| Availability, weekly offs, leave, comp-offs, public holidays | Employees (available weekdays, offs per week, preferred off-days), Holidays & leave |
-| Monthly generation that explains conflicts instead of producing an invalid roster | **Generate roster**; anything it can't solve stays visible as a gap with the reason |
-| Mandatory rules vs preferences | Issues are "Must fix" (mandatory) or Warning/Info (preferences); publishing with must-fix issues needs an explicit acknowledgement |
-| Company, pod, brand, process and employee views | Roster tab lenses; Overview has a coverage heatmap and a "who is working" board per day |
-| Manual edits with validation | Click any cell: the drawer shows what the change resolves and what it breaks *before* you apply it. Edited cells are locked and survive regeneration |
-| Changes after generation | Changes tab: report sickness or unavailability → preview → minimal repair, or re-optimise the rest of the month |
-| **Optional, done:** fair weekly offs and holiday rotation, preferences, backup recommendations, one-click fixes, re-optimise from a date, pod lead approval before publishing, leave approval with risk preview, per-person change notifications, CSV export, JSON import/export, AI conflict explanations, adding brands, pods, processes and shifts at any time | |
-| Shared database | Setup and rosters live in Postgres (Neon) behind two API routes, so everyone who opens the app sees the same data. Saves carry a version number; a stale save gets a 409 and the app loads the newer version |
+| **Overview.** The health check. Each row is one brand's piece of work, each column is a day. Grey is covered, blue stripes mean a backup is covering, red means nobody is there. | **Roster.** The schedule itself, by company, pod, brand, type of work or person. Click any day to change it. You see what the change breaks before you apply it, and your edit is locked so regenerating keeps it. Pod leads approve their pod here. |
+| <img src="docs/screens/overview.png" alt="Overview tab"> | <img src="docs/screens/roster.png" alt="Roster tab, company view"> |
+| **Issues.** The to-do list. "Must fix" means a hard rule is broken. "Warnings" are softer problems. Every issue names who normally covers it, why each of them can't, and what you can do, often with a one-click **Apply**. | **Changes and leave.** For after the roster is out. Report a sick day and the tool changes only that person's days and brings in a backup. Pending leave, drafted messages to the people affected, and a log of every change also live here. |
+| <img src="docs/screens/issues.png" alt="Issues tab with must-fix gaps and suggested fixes"> | <img src="docs/screens/changes.png" alt="Changes and leave tab"> |
+
+**Setup** holds all the input data: brands and what they need, people and who backs up whom, pods, holidays and leave, shifts and rules. **How it works** explains the rules inside the app, and first-time visitors get a short guided tour.
+
+## What it covers
+
+| Asked for | How Smart Roster does it |
+|---|---|
+| One place for employees, brands, processes, pods, leads and allocations | The Setup tab, all editable. The sample has 32 people, 20 brands and 4 pods |
+| About 80% one-person brands, the rest with 2 or 3 people | 16 of 20 brands are one-person. UrbanKicks, GlowVeda, BrewHaus and PetPal have teams, some sharing a process and some splitting them |
+| Working days set per brand and per process | Each brand process has its own calendar (365 days, daily except holidays, Mon to Sat, Mon to Fri, or custom), plus extra staff on chosen weekdays or dates |
+| Availability, weekly offs, leave, comp-offs, public holidays | Per person in Employees, plus Holidays and leave |
+| A monthly roster that explains conflicts instead of hiding them | **Generate roster**. Anything it can't solve stays as a red gap with the reason |
+| Must-have rules vs nice-to-haves | "Must fix" vs Warning and Info. Publishing with must-fix issues open needs a tick that you know |
+| Company, pod, brand, process and employee views | The five Roster views, plus the coverage grid and a "who's working" board on Overview |
+| Manual edits that get checked | Click any day: you see what it fixes and what it breaks before applying, and the edit is locked |
+| Changes after the roster is out | Changes and leave: report it, preview it, then the smallest repair, or re-plan from a date |
+| Shared data | Setup and rosters are stored in Postgres (Neon), so everyone sees the same thing. Saves carry a version, so two people can't silently overwrite each other |
+
+Also built: fair weekly offs and holiday rotation, preferred days off, backup suggestions, one-click fixes, re-planning from a date, pod lead approval before publishing, leave approval with a coverage preview, drafted change messages, CSV export, JSON import and export, AI explanations of issues, dark mode, and adding brands, pods, processes and shifts at any time.
 
 ## Run it locally
 
-Requires Node 20+.
+You need Node 20 or newer.
 
 ```bash
 npm install
-```
-
-```bash
 npm run dev
 ```
 
-Open http://localhost:5173, then press **Generate roster**. Setup → Data → *Reset to sample data* starts over.
+Open http://localhost:5173 and press **Generate roster**. To start over, go to Setup, then Data, then *Reset to sample data*.
 
-Both server settings are optional:
+Two optional settings go in `.env` (copy `.env.example`):
 
-```bash
-cp .env.example .env
-```
-
-- `DATABASE_URL`: a Postgres connection string (Neon's free plan works). The tables are created and seeded on the first request. Without it, the app says *This browser only* in the top bar and keeps everything in localStorage.
-- `ANTHROPIC_API_KEY`: for the "Explain with AI" button. Without it the button says the AI explanation is unavailable. The engine's own explanation is always shown.
+| Variable | What it's for | Without it |
+|---|---|---|
+| `DATABASE_URL` | A Postgres connection string. Neon's free plan works. Tables are created and filled with sample data on the first request | The top bar says *This browser only* and data stays in this browser |
+| `ANTHROPIC_API_KEY` | The "Explain with AI" button | The button says AI isn't available. The engine's own explanation always shows |
 
 ```bash
-npm test
-```
-
-```bash
-npm run build
+npm test         # engine tests
+npm run build    # type-check and production build
 ```
 
 ### Deploy to Vercel
 
-1. Push this repository to GitHub.
-2. In Vercel, **Add New → Project**, import the repo. The framework is detected as Vite; no build settings to change.
-3. Add a database: **Storage → Create Database → Neon** (free plan) and connect it to the project. That sets `DATABASE_URL`.
-4. Under **Environment Variables** add `ANTHROPIC_API_KEY` (optional; only the AI button needs it).
-5. Deploy. Each file in `api/` becomes a serverless function.
+1. Push the repo to GitHub and import it in Vercel (**Add New**, then **Project**). Vite is detected, nothing to change.
+2. Add a database: **Storage**, **Create Database**, **Neon**, and connect it to the project. That sets `DATABASE_URL`.
+3. Optionally add `ANTHROPIC_API_KEY` under **Environment Variables**.
+4. Deploy. Each file in `api/` becomes a serverless function.
 
-## Architecture
+## How it's built
 
 ```
 src/
-  engine/            pure TypeScript, no React; unit-tested
-    types.ts         domain model
-    context.ts       indexes the dataset for one month (who covers what, required staff per day)
-    generate.ts      roster generator + minimal repair after changes
-    validate.ts      every rule, coverage, per-employee stats, explanations and suggested fixes
-    actions.ts       manual edit, lock, apply suggestion, diff against published version
-    approval.ts      pod lead sign-off, voided when that pod's cells change
-  data/seed.ts       sample dataset
-  state.tsx          app state; loads and saves through the API (the only storage-aware module)
-  worker.ts          generation runs in a Web Worker so the UI never freezes
-  views/             Overview, Roster (5 lenses + cell editor), Issues, Changes, Setup, Guide
+  engine/            plain TypeScript, no React, with tests
+    types.ts         the data model
+    context.ts       indexes one month: who covers what, how many are needed each day
+    generate.ts      builds the roster, and repairs it after a change
+    validate.ts      every rule, coverage, per-person stats, explanations and suggested fixes
+    actions.ts       manual edits, locks, applying a suggestion, diff against the published roster
+    approval.ts      pod lead sign-off, cancelled when that pod's days change
+  data/seed.ts       the sample company
+  state.tsx          app state; loads and saves through the API
+  worker.ts          generation runs in a Web Worker so the page never freezes
+  views/             Overview, Roster, Issues, Changes, Setup, How it works
 api/
   state.ts           GET everything, PUT the setup, POST ?reset=1
   roster.ts          PUT or DELETE one month's roster
   explain.ts         AI explanation of one issue (Claude API)
-  _lib/db.ts         schema, seeding, transactions, version checks (Neon Postgres)
-  _lib/http.ts       request checks and error mapping
+  _lib/db.ts         tables, sample data, transactions, version checks
+  _lib/http.ts       request checks and error responses
 ```
 
-The engine is independent of the UI, so the same functions run in the browser, in the worker, in tests and could run on a server.
+The engine doesn't know about the UI, so the same code runs in the browser, in the worker and in the tests.
 
 ### Database
 
 ```
 workspace(id, version, policy)            one row; version goes up on every setup save
 pods(id, name, lead_id)                   brands(id, name, code, pod_id → pods)
-process_types(id, code, name, color)           shifts(id, name, start_time, end_time)
+process_types(id, code, name, color)      shifts(id, name, start_time, end_time)
 requirements(id, brand_id → brands, process_id → process_types, shift_id → shifts,
              calendar, min_staff, weekday_min, date_min, effort)
 employees(id, name, pod_id → pods, role, offs_per_week, available_weekdays, preferred_off_days,
           max_load, comp_off_opening, active)
 assignments(id, employee_id → employees, requirement_id → requirements, role PRIMARY|BACKUP)
 holidays(date, name)                      leaves(id, employee_id → employees, start_date, end_date, type, status, note)
-rosters(month, version, status, body)     one row per month; body holds the cells, log and approvals
+rosters(month, version, status, body)     one row per month; body holds the days, log and approvals
 ```
 
-The setup is saved as one transaction: lock the workspace row, check the version the client started from, rewrite the tables, bump the version. Foreign keys and check constraints reject a broken setup (a brand in a pod that doesn't exist, an unknown role), and the API answers 400. Each month's roster has its own version, so two managers editing different months never collide. If two people edit the same thing, the second save gets a 409, the app loads the newer version and says so.
+Saving the setup is one transaction: lock the workspace row, check the version the browser started from, rewrite the tables, bump the version. Foreign keys and checks reject a broken setup, like a brand in a pod that doesn't exist, and the API answers 400. Each month's roster has its own version, so two managers working on different months never collide. If two people edit the same thing, the second save gets a 409, and the app loads the newer version and says so.
 
-The app shows the state in the top bar: *Saved*, *Saving…*, *Not saved, retry*, or *This browser only* when the API can't be reached.
+The top bar shows where things stand: *Saved*, *Saving…*, *Not saved, retry*, or *This browser only* when the database can't be reached.
 
 ## Tell us how you think
 
@@ -189,3 +212,7 @@ The data model stays the same.
 - Pod leads carry a reduced load (0.6 FTE) so they have time to lead; floaters have no brand of their own.
 - One shift per process; a person may cover two processes on one day if the combined span is within the limit (10 h by default).
 - Sample data covers December 2026 and January 2027 (holidays and leave are seeded for both). December contains deliberately unsolvable situations to show how conflicts are explained.
+
+---
+
+Built by Mohak Malviya for the DATASTRAW assessment. [LinkedIn](https://www.linkedin.com/in/mohak-malviya-a6b89b225)
