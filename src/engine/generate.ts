@@ -49,6 +49,8 @@ export interface GenerateOptions {
   prev?: CellMap;
   next?: CellMap;
   maxRounds?: number;
+  /** Stop improving after this many ms and keep the best plan so far (the app sets it; tests don't, so they stay deterministic). */
+  timeLimitMs?: number;
 }
 
 export interface GenerateResult {
@@ -132,6 +134,8 @@ export function generateRoster(data: Dataset, month: string, opts: GenerateOptio
     ev.restore(st.days);
   };
   let budget = 6000;
+  const deadline = opts.timeLimitMs ? t0 + opts.timeLimitMs : Infinity;
+  const late = () => Date.now() > deadline;
   const greedySlot = (s: Slot) => {
     const set = offs.get(s.empId)!;
     let bestOpt = s.week.filter((d) => set.has(d));
@@ -186,7 +190,7 @@ export function generateRoster(data: Dataset, month: string, opts: GenerateOptio
           for (const oa of A.options) {
             for (const ob of B.options) {
               if (sameDays(oa, bestA) && sameDays(ob, bestB)) continue;
-              if (--budget < 0) return improved;
+              if (--budget < 0 || ((budget & 63) === 0 && late())) return improved;
               const before = ev.badness();
               const st = saveState([A.empId, B.empId]);
               setDays(offs.get(A.empId)!, week, oa);
@@ -216,9 +220,9 @@ export function generateRoster(data: Dataset, month: string, opts: GenerateOptio
   };
 
   const maxRounds = opts.maxRounds ?? 6;
-  for (let round = 0; round < maxRounds; round++) {
+  for (let round = 0; round < maxRounds && !late(); round++) {
     const a = singlePass();
-    const b = pairPass();
+    const b = !late() && pairPass();
     if (!a && !b) break;
   }
 

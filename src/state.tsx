@@ -87,10 +87,42 @@ function initialState(): AppState {
 
 // ── Generation runs in a Web Worker so the UI never freezes ──────────────────
 let worker: Worker | null = null;
+let workerBroken = false;
 let seq = 0;
 const pending = new Map<number, { resolve: (r: GenerateResult) => void; reject: (e: unknown) => void }>();
 
+/** The search stops improving after this long and keeps its best plan, so a slow laptop still gets an answer quickly. */
+const SEARCH_LIMIT_MS = 4000;
+/** If the worker hasn't answered by now, something is wrong with it: stop waiting. */
+const WORKER_TIMEOUT_MS = 30000;
+
+/** Run on the page itself. The UI pauses for a moment, but it always finishes. */
+function generateHere(data: Dataset, month: string, opts: GenerateOptions): Promise<GenerateResult> {
+  return new Promise((resolve, reject) =>
+    // let the "Generating…" state paint first
+    window.setTimeout(() => {
+      try {
+        resolve(generateRoster(data, month, opts));
+      } catch (e) {
+        reject(e);
+      }
+    }, 30),
+  );
+}
+
+class WorkerFailure extends Error {}
+
+function dropWorker(reason: string) {
+  workerBroken = true;
+  worker?.terminate();
+  worker = null;
+  for (const p of pending.values()) p.reject(new WorkerFailure(reason));
+  pending.clear();
+}
+
 function generateAsync(data: Dataset, month: string, opts: GenerateOptions): Promise<GenerateResult> {
+  opts = { timeLimitMs: SEARCH_LIMIT_MS, ...opts };
+  if (workerBroken) return generateHere(data, month, opts);
   try {
     if (!worker) {
       worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
@@ -102,14 +134,27 @@ function generateAsync(data: Dataset, month: string, opts: GenerateOptions): Pro
         if (ok) p.resolve(result);
         else p.reject(new Error(error));
       };
+      // A worker that fails to load (old tab after a redeploy, blocked by an extension…) would
+      // otherwise leave "Generating…" on screen forever.
+      worker.onerror = (e) => {
+        e.preventDefault();
+        dropWorker('worker failed');
+      };
+      worker.onmessageerror = () => dropWorker('worker failed');
     }
     const id = ++seq;
-    return new Promise((resolve, reject) => {
+    const viaWorker = new Promise<GenerateResult>((resolve, reject) => {
       pending.set(id, { resolve, reject });
       worker!.postMessage({ id, data, month, opts });
+      window.setTimeout(() => pending.has(id) && dropWorker('worker timed out'), WORKER_TIMEOUT_MS);
+    });
+    return viaWorker.catch((e) => {
+      if (e instanceof WorkerFailure) return generateHere(data, month, opts);
+      throw e;
     });
   } catch {
-    return Promise.resolve(generateRoster(data, month, opts));
+    workerBroken = true;
+    return generateHere(data, month, opts);
   }
 }
 

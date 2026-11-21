@@ -83,7 +83,7 @@ export function App() {
           <div className="spacer" />
           {busy && (
             <span className="busy small">
-              <IconLoader size={14} /> <span className="busy-t">{busy}</span>
+              <IconLoader size={14} /> <span className="busy-t">{busy}</span> <Elapsed key={busy} />
             </span>
           )}
           {roster && (
@@ -174,6 +174,16 @@ function SyncStatus() {
       {text}
     </span>
   );
+}
+
+/** Seconds since the current busy state began, so a long run never looks frozen. */
+function Elapsed() {
+  const [s, setS] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => setS((x) => x + 1), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+  return s >= 2 ? <span style={{ fontVariantNumeric: 'tabular-nums' }}>{s}s</span> : null;
 }
 
 function MoreMenu({ items, disabled }: { items: [string, ReactNode, () => void][]; disabled?: boolean }) {
