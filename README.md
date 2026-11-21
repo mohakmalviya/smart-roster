@@ -4,7 +4,7 @@
 
 **Plans a month of shifts for a brand-support team, and tells you exactly where it can't.**
 
-[Open the live app](https://smart-roster-rosy.vercel.app) &nbsp;&nbsp;|&nbsp;&nbsp; [Approach note](APPROACH.md) &nbsp;&nbsp;|&nbsp;&nbsp; Demo video: _coming soon_
+[Open the live app](https://smart-roster-rosy.vercel.app) &nbsp;&nbsp;|&nbsp;&nbsp; [Approach note](APPROACH.md) &nbsp;&nbsp;|&nbsp;&nbsp; [Watch the demo video](https://youtu.be/YG09Sgo7uJc)
 
 <br>
 
