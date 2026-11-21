@@ -1,4 +1,4 @@
-/* Hallmark · shape: app screen · genre: modern-minimal · theme: Coral (by request: more beautiful than Wayfind) · redesign: full
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: Coral (by request: more beautiful than Wayfind; light only, by request) · redesign: full
  * nav: a paper top bar, the month as a pressed card, the sections as a cotton card riding in a groove · signature: the coverage board on a cotton sheet, every brand process against every day, gaps inked in red and the chosen day lifted · states: empty month, generating, full; no load or error state in the app logic
  * axes: light/grotesk-sans/warm · posture: restrained · contrast: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E4 S4 R5 V4 · weakest: S, a roster grid can look like any spreadsheet; the records became cotton sheets lit from the left and the month's figure sits on the one ink board */
@@ -8,6 +8,7 @@
 
 /* ── App tokens: the roster's states, read through the Coral palette ─────────── */
 :root {
+  color-scheme: light;
   --bg: var(--color-desk);
   --panel: var(--color-cotton);
   --panel-2: var(--color-paper);
@@ -49,46 +50,6 @@
   --scrim: oklch(21% 0.012 38 / 0.35);
   --masthead-gap: var(--space-md);
   --sheet: var(--edge-stock), var(--cast-stock);
-}
-
-/* Evening: the same desk under a lamp. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --color-paper: oklch(20% 0.009 45);
-    --color-paper-2: oklch(25% 0.01 45);
-    --color-paper-3: oklch(28% 0.011 45);
-    --color-desk: oklch(17% 0.008 45);
-    --color-cotton: oklch(22.5% 0.01 50);
-    --color-print: oklch(93% 0.007 70);
-    --color-ink: oklch(93% 0.007 70);
-    --color-ink-2: oklch(84% 0.008 60);
-    --color-muted: oklch(72% 0.012 60);
-    --color-rule: oklch(30% 0.01 45);
-    --color-rule-2: oklch(38% 0.012 45);
-    --color-accent-2: oklch(72% 0.13 32);
-    --color-focus: oklch(72% 0.13 32);
-    --color-paid: oklch(72% 0.13 32);
-    --color-board: oklch(93% 0.007 70);
-    --color-board-type: oklch(18% 0.01 45);
-    --color-error: oklch(68% 0.16 27);
-    --color-success: oklch(74% 0.12 150);
-    --err-soft: oklch(28% 0.05 27);
-    --warn: oklch(78% 0.11 75);
-    --warn-soft: oklch(30% 0.04 75);
-    --slate: oklch(76% 0.08 250);
-    --slate-soft: oklch(29% 0.03 250);
-    --st-leave: oklch(34% 0.05 70);
-    --st-leave-fg: oklch(88% 0.06 75);
-    --st-co: oklch(30% 0.035 150);
-    --st-co-fg: oklch(84% 0.07 150);
-    --hm-ok: oklch(40% 0.02 60);
-    --scrim: oklch(5% 0.01 40 / 0.6);
-    --edge-stock: inset 0 1px 0 oklch(100% 0 0 / 0.05), 0 0 0 0.5px oklch(0% 0 0 / 0.6), 0 1px 0 oklch(0% 0 0 / 0.35);
-    --cast-stock: 6px 5px 12px -6px oklch(0% 0 0 / 0.55);
-    --cast-stock-lift: 12px 10px 20px -8px oklch(0% 0 0 / 0.6);
-    --press-groove: inset 1px 1.5px 3px oklch(0% 0 0 / 0.45), inset -1px -1px 0 oklch(100% 0 0 / 0.04), 0 0 0 0.5px oklch(0% 0 0 / 0.5);
-  }
 }
 
 /* ── Base ───────────────────────────────────────────── */
@@ -1243,27 +1204,31 @@ tr.covrow td.namecol {
   background: var(--st-idle);
 }
 
-/* ── Issues: rows on one sheet ──────────────────────── */
+/* ── Issues: each one its own card, two across on wide screens ── */
 .issue-list {
-  padding: 0 var(--space-lg);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(560px, 100%), 1fr));
+  gap: var(--space-md);
+  align-items: stretch;
+}
+.issue-list > div {
+  background: var(--panel);
+  border-radius: var(--radius-card);
+  box-shadow: var(--sheet);
+  padding: var(--space-lg);
 }
 .issue {
-  padding: var(--space-lg) 0 var(--space-lg) var(--space-lg);
+  padding: 0 0 0 var(--space-lg);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
   position: relative;
-  border-bottom: var(--rule-hair) solid var(--border);
-}
-.issue-list > :last-child .issue,
-.issue-list > .issue:last-child {
-  border-bottom: 0;
 }
 .issue::before {
   content: '';
   position: absolute;
   left: 0;
-  top: calc(var(--space-lg) + 5px);
+  top: 6px;
   width: 10px;
   height: 10px;
   border-radius: 2px;
@@ -1283,7 +1248,6 @@ tr.covrow td.namecol {
   gap: var(--space-2xs) var(--space-sm);
   align-items: baseline;
   flex-wrap: wrap;
-  padding-right: 200px;
 }
 .sev {
   font-weight: 600;
@@ -1308,9 +1272,9 @@ tr.covrow td.namecol {
   max-width: 80ch;
 }
 .ack {
-  position: absolute;
-  right: 0;
-  top: var(--space-lg);
+  display: block;
+  margin-bottom: var(--space-xs);
+  padding-left: var(--space-lg);
   font-size: var(--text-xs);
   color: var(--muted);
 }
@@ -1341,14 +1305,8 @@ tr.covrow td.namecol {
   white-space: normal;
 }
 @media (max-width: 600px) {
-  .issue-list {
-    padding: 0 var(--space-md);
-  }
-  .issue-head {
-    padding-right: 0;
-  }
-  .ack {
-    position: static;
+  .issue-list > div {
+    padding: var(--space-md);
   }
 }
 
@@ -1567,6 +1525,16 @@ tr.covrow td.namecol {
 }
 
 /* ── How it works ───────────────────────────────────── */
+.panel.prose {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-2xl);
+}
+@media (max-width: 760px) {
+  .panel.prose {
+    padding: var(--space-lg) var(--space-md);
+  }
+}
 .prose {
   max-width: 72ch;
   line-height: 1.7;
@@ -1716,9 +1684,6 @@ tr.covrow td.namecol {
   .board > .stack,
   .panel-pad {
     padding: var(--space-md);
-  }
-  .issue-list {
-    padding: 0 var(--space-md);
   }
 }
 @media (max-width: 600px) {

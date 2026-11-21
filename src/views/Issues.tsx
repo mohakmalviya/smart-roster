@@ -78,7 +78,7 @@ export function Issues() {
       </p>
       {list.length === 0 && <Empty>Nothing matches these filters. {s.errors === 0 && 'Every mandatory rule is met.'}</Empty>}
       {list.length > 0 && (
-        <div className="panel issue-list">
+        <div className="issue-list">
           {list.map((i) => (
             <div key={i.key} style={{ position: 'relative' }}>
               {acked.has(i.key) && <span className="ack">Acknowledged at publish</span>}
