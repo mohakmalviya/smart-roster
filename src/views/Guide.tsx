@@ -1,3 +1,5 @@
+import { startTour } from '../ui/Tour';
+
 export function Guide() {
   return (
     <div className="guide">
@@ -8,6 +10,9 @@ export function Guide() {
           minimum staff) and <b>when a person works</b> (weekly offs, availability, leave, comp-offs). The roster fits the two together, and every place where
           they don’t fit is reported with the reason.
         </p>
+        <button className="btn" onClick={startTour}>
+          Take the tour
+        </button>
       </header>
 
       <section className="panel guide-card">

@@ -12,6 +12,7 @@ import { Issues } from './views/Issues';
 import { Overview } from './views/Overview';
 import { RosterView, type Lens } from './views/RosterView';
 import { Setup } from './views/Setup';
+import { Tour } from './ui/Tour';
 
 type Tab = 'overview' | 'roster' | 'issues' | 'changes' | 'setup' | 'guide';
 
@@ -116,7 +117,13 @@ export function App() {
 
         <nav className="navtabs" aria-label="Sections">
           {NAV.map((n) => (
-            <button key={n.tab} className={tab === n.tab ? 'active' : ''} onClick={() => go(n.tab)} aria-current={tab === n.tab ? 'page' : undefined}>
+            <button
+              key={n.tab}
+              data-tab={n.tab}
+              className={tab === n.tab ? 'active' : ''}
+              onClick={() => go(n.tab)}
+              aria-current={tab === n.tab ? 'page' : undefined}
+            >
               {n.label}
               {n.tab === 'issues' && issueCount > 0 && <span className={`count ${s && s.errors ? 'err' : ''}`}>{issueCount}</span>}
             </button>
@@ -135,6 +142,7 @@ export function App() {
 
       {publishing && <PublishModal onClose={() => setPublishing(false)} />}
       {reopt && <ReoptModal onClose={() => setReopt(false)} />}
+      <Tour />
       {toast && (
         <div className="toast" role="status">
           {toast}

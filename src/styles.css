@@ -1476,6 +1476,69 @@ tr.covrow td.namecol {
     animation: none;
   }
 }
+/* ── First-visit tour: the page dims, one control stays lit, a sheet explains it ── */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-tooltip);
+}
+.tour-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  animation: fade var(--dur-short) var(--ease-out);
+}
+.tour-spot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 0 100vmax var(--scrim);
+  pointer-events: none;
+}
+.tour-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: min(360px, calc(100% - 32px));
+  background: var(--panel);
+  color: var(--text);
+  border-radius: var(--radius-card);
+  box-shadow: var(--edge-stock), var(--cast-stock-lift);
+  padding: var(--space-md) var(--space-lg) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.tour-card h3 {
+  margin: 0;
+}
+.tour-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.tour-count {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+.tour-card > * {
+  animation: fade var(--dur-short) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-scrim,
+  .tour-card > * {
+    animation: none;
+  }
+}
 .toast {
   position: fixed;
   bottom: var(--space-lg);
