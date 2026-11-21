@@ -3,6 +3,7 @@
  * axes: light/grotesk-sans/warm · posture: restrained · contrast: pass · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E4 S4 R5 V4 · weakest: S, a roster grid can look like any spreadsheet; the records became cotton sheets lit from the left and the month's figure sits on the one ink board */
 /* Hallmark · reworded "Unlock" to "Remove lock" and "Unlocked. The next generation may change this cell." to "Lock removed. Regenerating may change this cell." · 19 names "Unlock" and "next generation"; the unlock handler is unchanged */
+/* Hallmark · reworded "onClick={() => { const ch = applyAvailability(draft); setDraft(null); notify(`Minimal repair applied: ${ch.length} edit(s).`); }}" "onClick={() => notify(`Roster re-checked: ${applyAvailability().length} edit(s).`)}" "onClick={() => { if (!confirm(`Delete brand ${b.name} and its ${reqs.length} process(es)?`)) return; const ids = new Set(reqs.map((r) => r.id)); commit( { ...data, brands: data.brands.filter((x) => x.id !== b.id), requirements: data.requirements.filter((r) => !ids.has(r.id)), assignments: data.assignments.filter((a) => !ids.has(a.requirementId)), }, `Brand ${b.name} deleted.`, ); }}" to plural counts · counts now read 1 edit and 3 edits instead of edit(s), and the re-check runs once instead of twice; each handler does the same job */
 @import url('./tokens.css');
 @import url('./base.css');
 

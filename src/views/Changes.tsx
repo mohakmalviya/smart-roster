@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { publishedDiff } from '../engine/actions';
 import { buildContext, reqLabel } from '../engine/context';
-import { fmtDate, shiftMonth } from '../engine/dates';
+import { fmtDate, shiftMonth, plural } from '../engine/dates';
 import { applyAvailabilityChanges, describe } from '../engine/generate';
 import type { Dataset, ID, Leave, LeaveType } from '../engine/types';
 import { diffIssues, validate } from '../engine/validate';
@@ -19,7 +19,11 @@ export function Changes() {
   const { roster } = useStore();
   return (
     <div className="stack">
-      {roster ? <ReportUnavailability /> : <Empty>Generate a roster first; then report changes here and the engine repairs it with the fewest possible edits.</Empty>}
+      {roster ? (
+        <ReportUnavailability />
+      ) : (
+        <Empty>Generate a roster first; then report changes here and the engine repairs it with the fewest possible edits.</Empty>
+      )}
       <PendingLeaves />
       {roster && <Notifications />}
       {roster && <ActivityLog />}
@@ -80,7 +84,13 @@ function ReportUnavailability() {
         </label>
         <label className="field">
           From
-          <input type="date" value={from} min={ctx.dates[0]} max={ctx.dates[ctx.dates.length - 1]} onChange={(x) => (setFrom(x.target.value), setTo((t) => (t < x.target.value ? x.target.value : t)), setDraft(null))} />
+          <input
+            type="date"
+            value={from}
+            min={ctx.dates[0]}
+            max={ctx.dates[ctx.dates.length - 1]}
+            onChange={(x) => (setFrom(x.target.value), setTo((t) => (t < x.target.value ? x.target.value : t)), setDraft(null))}
+          />
         </label>
         <label className="field">
           To
@@ -102,20 +112,16 @@ function ReportUnavailability() {
       </div>
       {e && (
         <div className="small muted">
-          {e.name} is primary on {reqs.length} process(es) across {brands.size} brand(s)
-          {soleOwner.length > 0 && (
-            <>
-              {' '}
-              , and the only person on {soleOwner.map((r) => reqLabel(ctx, r)).join(', ')}, so each of those days needs a backup.
-            </>
-          )}
-          .
+          {e.name} is primary on {reqs.length} {reqs.length === 1 ? 'process' : 'processes'} across {brands.size} {brands.size === 1 ? 'brand' : 'brands'}
+          {soleOwner.length > 0 ? `, and the only person on ${soleOwner.map((r) => reqLabel(ctx, r)).join(', ')}, so each of those days needs a backup.` : '.'}
         </div>
       )}
 
       {preview && draft && (
         <div className="stack" style={{ gap: 8 }}>
-          <h4>Proposed minimal repair ({preview.res.changes.length} edit(s))</h4>
+          <h4>
+            Proposed minimal repair ({preview.res.changes.length} {plural(preview.res.changes.length, 'edit')})
+          </h4>
           <div className="table-wrap" style={{ maxHeight: 260 }}>
             <table className="data small">
               <tbody>
@@ -158,7 +164,7 @@ function ReportUnavailability() {
               onClick={() => {
                 const ch = applyAvailability(draft);
                 setDraft(null);
-                notify(`Minimal repair applied: ${ch.length} edit(s).`);
+                notify(`Minimal repair applied: ${ch.length} ${plural(ch.length, 'edit')}.`);
               }}
             >
               Apply minimal repair
@@ -230,14 +236,17 @@ function PendingLeaves() {
                   const next = { ...data, leaves: data.leaves.map((x) => (x.id === l.id ? { ...x, status: 'APPROVED' as const } : x)) };
                   if (roster) {
                     const ch = applyAvailability(next);
-                    notify(`Approved. Roster repaired with ${ch.length} edit(s).`);
+                    notify(`Approved. Roster repaired with ${ch.length} ${plural(ch.length, 'edit')}.`);
                   } else updateData(() => next, 'Approved.');
                   setPreview(null);
                 }}
               >
                 Approve
               </button>
-              <button className="btn sm danger" onClick={() => updateData((d) => ({ ...d, leaves: d.leaves.filter((x) => x.id !== l.id) }), 'Request rejected.')}>
+              <button
+                className="btn sm danger"
+                onClick={() => updateData((d) => ({ ...d, leaves: d.leaves.filter((x) => x.id !== l.id) }), 'Request rejected.')}
+              >
                 Reject
               </button>
             </div>
@@ -269,7 +278,9 @@ function Notifications() {
     return (
       <div className="panel panel-pad">
         <h3>Change notifications</h3>
-        <p className="small muted">Publish the roster to start tracking changes. After that, every edit shows here as a notification for the person affected.</p>
+        <p className="small muted">
+          Publish the roster to start tracking changes. After that, every edit shows here as a notification for the person affected.
+        </p>
       </div>
     );
   const diff = publishedDiff(roster);
@@ -280,15 +291,15 @@ function Notifications() {
       <div>
         <h3>Change notifications</h3>
         <p className="small muted">
-          Changes since publishing on {roster.publishedAt ? new Date(roster.publishedAt).toLocaleString() : 'an unknown date'}. In production these would be sent by email or chat;
-          here they are drafted per person.
+          Changes since publishing on {roster.publishedAt ? new Date(roster.publishedAt).toLocaleString() : 'an unknown date'}. In production these would be
+          sent by email or chat; here they are drafted per person.
         </p>
       </div>
       {byEmp.size === 0 && <div className="small muted">No changes since publishing.</div>}
       {[...byEmp].map(([id, list]) => (
         <div key={id} className="issue INFO">
           <div className="title">
-            To {ctx.emp.get(id)?.name}: your roster changed on {list.length} day(s)
+            To {ctx.emp.get(id)?.name}: your roster changed on {list.length} {plural(list.length, 'day')}
           </div>
           <div className="detail">
             {list.map((d) => (

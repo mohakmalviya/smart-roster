@@ -1,14 +1,6 @@
 import { candidates, STATUS_LABEL } from './generate';
-import {
-  empName,
-  fixedUnavailable,
-  load,
-  reqLabel,
-  shiftCompatible,
-  shiftSpan,
-  type Ctx,
-} from './context';
-import { fmtDate, inRange, WEEKDAY_SHORT, weekday } from './dates';
+import { empName, fixedUnavailable, load, reqLabel, shiftCompatible, shiftSpan, type Ctx } from './context';
+import { fmtDate, inRange, WEEKDAY_SHORT, weekday, plural } from './dates';
 import type { Cell, CellMap, CoverageMap, ID, ISODate, Issue, Suggestion } from './types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,8 +46,6 @@ export interface Validation {
   };
 }
 
-
-
 export function validate(ctx: Ctx, cells: CellMap): Validation {
   const issues: Issue[] = [];
   const add = (i: Omit<Issue, 'key'> & { key?: string }) =>
@@ -77,7 +67,7 @@ export function validate(ctx: Ctx, cells: CellMap): Validation {
         requirementId: r.id,
         brandId: r.brandId,
         title: `${reqLabel(ctx, r.id)} has no primary employee`,
-        detail: `This process operates on ${days.length} day(s) this month but nobody is assigned as primary. ${
+        detail: `This process operates on ${days.length} ${plural(days.length, 'day')} this month but nobody is assigned as primary. ${
           (ctx.backupsOf.get(r.id) ?? []).length ? 'Only backups are configured, so it is covered ad hoc at best.' : 'No backups are configured either.'
         }`,
         suggestions: [{ kind: 'CONFIG', text: 'Assign a primary employee in Setup → Brands, processes & staffing.' }],
@@ -142,7 +132,9 @@ export function validate(ctx: Ctx, cells: CellMap): Validation {
           employeeId: e.id,
           title: `${e.name} is rostered to work on ${fmtDate(d)} but is ${{ LEAVE: 'on leave', COMP_OFF: 'on comp-off', NA: 'not available' }[u.status as 'LEAVE'] ?? STATUS_LABEL[u.status].toLowerCase()}`,
           detail: `${u.note ?? 'Approved leave / availability says this person cannot work this day.'} Rostered: ${c.duties.map((x) => reqLabel(ctx, x.requirementId)).join(', ') || 'standby'}.`,
-          suggestions: [{ kind: 'CONFIG', text: 'Set this cell back to the leave status, or use Setup → Minimal repair to re-apply all leave and availability.' }],
+          suggestions: [
+            { kind: 'CONFIG', text: 'Set this cell back to the leave status, or use Setup → Minimal repair to re-apply all leave and availability.' },
+          ],
         });
       }
       if (c.status !== 'WORK' && c.duties.length) {
@@ -208,7 +200,8 @@ export function validate(ctx: Ctx, cells: CellMap): Validation {
             employeeId: e.id,
             requirementId: du.requirementId,
             title: `${e.name} covers ${reqLabel(ctx, du.requirementId)} without being assigned to it`,
-            detail: 'Allowed as a manual decision, but this person is neither primary nor configured backup for this brand process. Confirm they have product knowledge, or add them as a backup.',
+            detail:
+              'Allowed as a manual decision, but this person is neither primary nor configured backup for this brand process. Confirm they have product knowledge, or add them as a backup.',
             suggestions: [],
           });
         }
@@ -234,7 +227,7 @@ export function validate(ctx: Ctx, cells: CellMap): Validation {
       severity: 'INFO',
       hard: false,
       employeeId: id,
-      title: `${empName(ctx, id)} is stretched above 1.0 FTE on ${days.length} day(s)`,
+      title: `${empName(ctx, id)} is stretched above 1.0 FTE on ${days.length} ${plural(days.length, 'day')}`,
       detail: `Within their cap, but heavier than a normal day because of backup cover: ${days.map(fmtDate).join(', ')}.`,
       suggestions: [],
     });
@@ -244,7 +237,21 @@ export function validate(ctx: Ctx, cells: CellMap): Validation {
   const empStats = new Map<ID, EmpStats>();
   for (const e of ctx.emps) {
     const row = cells[e.id] ?? {};
-    const st: EmpStats = { work: 0, wo: 0, ph: 0, leave: 0, compOff: 0, na: 0, idle: 0, phWorked: 0, backupDays: 0, compOffBalance: 0, prefMet: 0, prefTotal: 0, weekendOffs: 0 };
+    const st: EmpStats = {
+      work: 0,
+      wo: 0,
+      ph: 0,
+      leave: 0,
+      compOff: 0,
+      na: 0,
+      idle: 0,
+      phWorked: 0,
+      backupDays: 0,
+      compOffBalance: 0,
+      prefMet: 0,
+      prefTotal: 0,
+      weekendOffs: 0,
+    };
     for (const d of ctx.dates) {
       const c = row[d];
       if (!c) continue;
@@ -300,8 +307,8 @@ export function validate(ctx: Ctx, cells: CellMap): Validation {
           hard: true,
           employeeId: e.id,
           date: first,
-          title: `${e.name} gets ${got} of ${need} weekly off(s) in week of ${fmtDate(week[0])}`,
-          detail: `Contract: ${e.offsPerWeek} weekly off(s) per Monday to Sunday week. Weekly offs are mandatory. If one is cancelled to protect coverage, give a comp-off.`,
+          title: `${e.name} gets ${got} of ${need} weekly ${plural(need, 'off')} in week of ${fmtDate(week[0])}`,
+          detail: `Contract: ${e.offsPerWeek} weekly ${plural(e.offsPerWeek, 'off')} per Monday to Sunday week. Weekly offs are mandatory. If one is cancelled to protect coverage, give a comp-off.`,
           suggestions: [{ kind: 'CONFIG', text: "Set one of this week's days to Weekly off, or record an approved comp-off later." }],
         });
       }
@@ -341,7 +348,7 @@ export function validate(ctx: Ctx, cells: CellMap): Validation {
         hard: false,
         employeeId: e.id,
         title: `${e.name} takes more comp-offs than earned`,
-        detail: `Opening balance ${e.compOffOpening} + ${st.phWorked} holiday(s) worked − ${st.compOff} taken = ${st.compOffBalance}.`,
+        detail: `Opening balance ${e.compOffOpening} + ${st.phWorked} ${plural(st.phWorked, 'holiday')} worked − ${st.compOff} taken = ${st.compOffBalance}.`,
         suggestions: [],
       });
     }
@@ -574,7 +581,11 @@ function suggestForGap(ctx: Ctx, cells: CellMap, coverage: CoverageMap, reqId: I
   // 4. Leave review
   for (const p of ctx.primariesOf.get(reqId) ?? []) {
     const lv = ctx.leaveOn.get(p)?.get(d);
-    if (lv && lv.type === 'PLANNED') out.push({ kind: 'CANCEL_LEAVE_REVIEW', text: `Discuss moving ${empName(ctx, p)}'s planned leave (${fmtDate(lv.start)}${lv.end !== lv.start ? '–' + fmtDate(lv.end) : ''}). It was approved without cover.` });
+    if (lv && lv.type === 'PLANNED')
+      out.push({
+        kind: 'CANCEL_LEAVE_REVIEW',
+        text: `Discuss moving ${empName(ctx, p)}'s planned leave (${fmtDate(lv.start)}${lv.end !== lv.start ? '–' + fmtDate(lv.end) : ''}). It was approved without cover.`,
+      });
   }
 
   if (!out.some((s) => s.action))

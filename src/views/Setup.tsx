@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { CALENDAR_PRESETS, presetCalendar } from '../data/seed';
 import { cloneCells } from '../engine/context';
-import { fmtDate, WEEKDAY_SHORT } from '../engine/dates';
+import { fmtDate, WEEKDAY_SHORT, plural } from '../engine/dates';
 import type { Assignment, Brand, CalendarPreset, Dataset, Employee, ID, LeaveType, Requirement, Roster, Weekday } from '../engine/types';
 import { uid, useStore, type AppState } from '../state';
 import { downloadFile, ProcTag, WeekdayPicker } from '../ui/common';
@@ -32,7 +32,10 @@ export function Setup() {
       {roster && (
         <div className="banner info row">
           <span style={{ flex: 1 }}>Changes here apply the next time you generate. To bring this month’s roster in line now:</span>
-          <button className="btn sm" onClick={() => notify(`Roster re-checked: ${applyAvailability().length} edit(s).`)}>
+          <button className="btn sm" onClick={() => {
+              const n = applyAvailability().length;
+              notify(`Roster re-checked: ${n} ${plural(n, 'edit')}.`);
+            }}>
             Minimal repair
           </button>
           <button className="btn sm primary" disabled={!!busy} onClick={() => generate()}>
@@ -209,7 +212,7 @@ function BrandEditor({
         <button
           className="btn sm danger"
           onClick={() => {
-            if (!confirm(`Delete brand ${b.name} and its ${reqs.length} process(es)?`)) return;
+            if (!confirm(`Delete brand ${b.name} and its ${reqs.length} ${plural(reqs.length, 'process', 'processes')}?`)) return;
             const ids = new Set(reqs.map((r) => r.id));
             commit(
               {
@@ -624,7 +627,7 @@ function PodsAndProcesses() {
                   <td>
                     <input type="color" value={p.color} onChange={(e) => set({ color: e.target.value })} />
                   </td>
-                  <td>{used} brand(s)</td>
+                  <td>{used} {plural(used, 'brand')}</td>
                   <td>
                     <button
                       className="btn sm ghost"
@@ -795,7 +798,7 @@ function ShiftsAndPolicy() {
                   <td>
                     <input type="time" value={s.end} onChange={(e) => set({ end: e.target.value })} />
                   </td>
-                  <td className="muted">{used} process(es)</td>
+                  <td className="muted">{used} {plural(used, 'process', 'processes')}</td>
                   <td>
                     <button className="btn sm ghost" onClick={() => (used ? notify('Shift is in use.') : update((d) => ({ ...d, shifts: d.shifts.filter((x) => x.id !== s.id) })))}>
                       ✕

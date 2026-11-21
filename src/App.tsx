@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { reqLabel } from './engine/context';
-import { monthLabel, shiftMonth } from './engine/dates';
+import { monthLabel, shiftMonth, plural } from './engine/dates';
 import { cloneCells } from './engine/context';
 import { useStore } from './state';
 import { downloadFile, Modal, SevBadge } from './ui/common';
@@ -206,7 +206,10 @@ function PublishModal({ onClose }: { onClose: () => void }) {
                 acknowledged: errors.map((e) => e.key),
                 log: [
                   ...roster.log,
-                  { at: new Date().toISOString(), text: `Published${errors.length ? ` with ${errors.length} acknowledged issue(s)` : ''}.` },
+                  {
+                    at: new Date().toISOString(),
+                    text: `Published${errors.length ? ` with ${errors.length} acknowledged ${plural(errors.length, 'issue')}` : ''}.`,
+                  },
                 ],
               });
               notify('Roster published. Later changes will be tracked against this version.');
@@ -223,8 +226,8 @@ function PublishModal({ onClose }: { onClose: () => void }) {
       ) : (
         <>
           <div className="banner err">
-            {errors.length} must-fix issue(s) remain. You can still publish if they have been handled outside the tool (for example, a client agreed to reduced
-            cover), but you need to acknowledge them.
+            {errors.length} must-fix {plural(errors.length, 'issue')} remain. You can still publish if they have been handled outside the tool (for example, a
+            client agreed to reduced cover), but you need to acknowledge them.
           </div>
           <div className="stack" style={{ gap: 4, maxHeight: 260, overflow: 'auto' }}>
             {errors.map((e) => (
@@ -269,8 +272,8 @@ function ReoptModal({ onClose }: { onClose: () => void }) {
       }
     >
       <p className="small">
-        Days before the chosen date stay exactly as they are (they have happened or people have planned around them). From that date on, the engine re-plans weekly
-        offs and cover. Cells you edited by hand stay locked.
+        Days before the chosen date stay exactly as they are (they have happened or people have planned around them). From that date on, the engine re-plans
+        weekly offs and cover. Cells you edited by hand stay locked.
       </p>
       <label className="field">
         Re-plan from

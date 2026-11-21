@@ -17,8 +17,15 @@ export function addDays(d: ISODate, n: number): ISODate {
   return toISO(x);
 }
 
+const weekdayCache = new Map<ISODate, Weekday>();
+/** Cached: the generator asks for the same dates thousands of times. */
 export function weekday(d: ISODate): Weekday {
-  return parseISO(d).getUTCDay() as Weekday;
+  let w = weekdayCache.get(d);
+  if (w === undefined) {
+    w = parseISO(d).getUTCDay() as Weekday;
+    weekdayCache.set(d, w);
+  }
+  return w;
 }
 
 /** All dates of a month "yyyy-mm". */
@@ -91,7 +98,18 @@ export function shiftMonth(month: string, delta: number): string {
   return x.toISOString().slice(0, 7);
 }
 
+const minutesCache = new Map<string, number>();
 export function minutes(hhmm: string): number {
-  const [h, m] = hhmm.split(':').map(Number);
-  return h * 60 + m;
+  let v = minutesCache.get(hhmm);
+  if (v === undefined) {
+    const [h, m] = hhmm.split(':').map(Number);
+    v = h * 60 + m;
+    minutesCache.set(hhmm, v);
+  }
+  return v;
+}
+
+/** "shift" or "shifts" for a count. */
+export function plural(n: number, one: string, many = one + 's'): string {
+  return n === 1 ? one : many;
 }

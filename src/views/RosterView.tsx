@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { publishedDiff, setCell, unlockCell } from '../engine/actions';
 import { load, reqLabel, shiftCompatible } from '../engine/context';
-import { fmtDate, WEEKDAY_SHORT, weekday } from '../engine/dates';
+import { fmtDate, WEEKDAY_SHORT, weekday, plural } from '../engine/dates';
 import type { Cell, CellStatus, Duty, ID, ISODate } from '../engine/types';
 import { diffIssues, validate } from '../engine/validate';
 import { useStore } from '../state';
@@ -23,7 +23,17 @@ interface Group {
   empIds: ID[];
 }
 
-export function RosterView({ lens, setLens, sel, setSel }: { lens: Lens; setLens: (l: Lens) => void; sel: Record<Lens, string>; setSel: (l: Lens, v: string) => void }) {
+export function RosterView({
+  lens,
+  setLens,
+  sel,
+  setSel,
+}: {
+  lens: Lens;
+  setLens: (l: Lens) => void;
+  sel: Record<Lens, string>;
+  setSel: (l: Lens, v: string) => void;
+}) {
   const { ctx, roster, data } = useStore();
   const [editing, setEditing] = useState<{ empId: ID; date: ISODate } | null>(null);
 
@@ -73,7 +83,15 @@ export function RosterView({ lens, setLens, sel, setSel }: { lens: Lens; setLens
     body = (
       <>
         <div className="row">
-          <Picker label="Brand" value={brandId} onChange={(v) => setSel('brand', v)} options={data.brands.map((x) => [x.id, `${x.name} (${primaries.size} ${primaries.size === 1 ? 'person' : 'people'})`])} />
+          <Picker
+            label="Brand"
+            value={brandId}
+            onChange={(v) => setSel('brand', v)}
+            options={data.brands.map((x) => {
+              const n = new Set(ctx.reqs.filter((r) => r.brandId === x.id).flatMap((r) => ctx.primariesOf.get(r.id) ?? [])).size;
+              return [x.id, `${x.name} (${n} ${n === 1 ? 'person' : 'people'})`];
+            })}
+          />
           <span className="small muted">
             Pod {pods.find((p) => p.id === b?.podId)?.name}. Processes:{' '}
             {reqs.map((r) => (
@@ -100,13 +118,23 @@ export function RosterView({ lens, setLens, sel, setSel }: { lens: Lens; setLens
     body = (
       <>
         <Picker label="Process" value={processId} onChange={(v) => setSel('process', v)} options={data.processes.map((p) => [p.id, `${p.name} (${p.code})`])} />
-        <RosterGrid groups={[{ label: `Primary staff for ${ctx.process.get(processId)?.code}`, empIds: sortEmps([...staff]) }]} covReqs={reqs} covFirst onEdit={setEditing} />
+        <RosterGrid
+          groups={[{ label: `Primary staff for ${ctx.process.get(processId)?.code}`, empIds: sortEmps([...staff]) }]}
+          covReqs={reqs}
+          covFirst
+          onEdit={setEditing}
+        />
       </>
     );
   } else {
     body = (
       <>
-        <Picker label="Employee" value={empId} onChange={(v) => setSel('employee', v)} options={ctx.emps.map((e) => [e.id, `${e.name} (${pods.find((p) => p.id === e.podId)?.name})`])} />
+        <Picker
+          label="Employee"
+          value={empId}
+          onChange={(v) => setSel('employee', v)}
+          options={ctx.emps.map((e) => [e.id, `${e.name} (${pods.find((p) => p.id === e.podId)?.name})`])}
+        />
         <EmployeeCalendar empId={empId} onEdit={setEditing} />
       </>
     );
@@ -198,7 +226,9 @@ function RosterGrid({
           {ctx.dates.map((d) => {
             const c = validation.coverage[r][d];
             const cls = c.required === 0 ? (c.staffed ? 'over' : 'closed') : c.staffed < c.required ? 'short' : c.staffed > c.required ? 'over' : 'ok';
-            const names = [...c.primaries, ...c.backups.map((b) => b + '*')].map((x) => (x.endsWith('*') ? ctx.emp.get(x.slice(0, -1))?.name + ' (backup)' : ctx.emp.get(x)?.name));
+            const names = [...c.primaries, ...c.backups.map((b) => b + '*')].map((x) =>
+              x.endsWith('*') ? ctx.emp.get(x.slice(0, -1))?.name + ' (backup)' : ctx.emp.get(x)?.name,
+            );
             return (
               <td key={d}>
                 <div className={`cov ${cls}`} title={`${reqLabel(ctx, r)}, ${fmtDate(d)}\nneeds ${c.required}, scheduled ${c.staffed}\n${names.join('\n')}`}>
@@ -236,11 +266,7 @@ function RosterGrid({
         </thead>
         <tbody>
           {covFirst && covRows}
-          {groups.map((g) =>
-            g.empIds.length === 0 ? null : (
-              <GroupRows key={g.label} g={g} brandId={brandId} flags={flags} onEdit={onEdit} />
-            ),
-          )}
+          {groups.map((g) => (g.empIds.length === 0 ? null : <GroupRows key={g.label} g={g} brandId={brandId} flags={flags} onEdit={onEdit} />))}
           {!covFirst && covRows}
           {summaryRow && (
             <tr className="covrow">
@@ -306,7 +332,11 @@ function GroupRows({
                 <td key={d}>
                   <button className={cls} title={cellTitle(ctx, e.name, fmtDate(d), c)} onClick={() => onEdit({ empId: id, date: d })}>
                     {cellCode(ctx, c, brandId)}
-                    {c?.locked && <span className="lock" title="Locked by manager"><IconLock size={9} /></span>}
+                    {c?.locked && (
+                      <span className="lock" title="Locked by manager">
+                        <IconLock size={9} />
+                      </span>
+                    )}
                   </button>
                 </td>
               );
@@ -346,7 +376,11 @@ function EmployeeCalendar({ empId, onEdit }: { empId: ID; onEdit: (x: { empId: I
                 <span className="n">
                   {Number(d.slice(8))} {c?.locked && <IconLock size={11} />}
                 </span>
-                {ctx.holidays.get(d) && <span className="small" style={{ color: 'var(--st-ph-fg)' }}>{ctx.holidays.get(d)}</span>}
+                {ctx.holidays.get(d) && (
+                  <span className="small" style={{ color: 'var(--st-ph-fg)' }}>
+                    {ctx.holidays.get(d)}
+                  </span>
+                )}
                 {c?.status === 'WORK' ? (
                   c.duties.length ? (
                     c.duties.map((du) => (
@@ -370,17 +404,45 @@ function EmployeeCalendar({ empId, onEdit }: { empId: ID; onEdit: (x: { empId: I
         <div className="panel panel-pad stack" style={{ gap: 6 }}>
           <h3>{e.name}</h3>
           <div className="small muted">
-            {e.role.toLowerCase()}, Pod {lead?.name}, {e.offsPerWeek} weekly off(s), prefers{' '}
+            {e.role.toLowerCase()}, Pod {lead?.name}, {e.offsPerWeek} weekly {plural(e.offsPerWeek, 'off')}, prefers{' '}
             {e.preferredOffDays.length ? e.preferredOffDays.map((w) => WEEKDAY_SHORT[w]).join('/') : 'no particular day'} off
           </div>
           <table className="data small">
             <tbody>
-              <tr><td>Working days</td><td><b>{st.work}</b> ({st.backupDays} with backup cover)</td></tr>
-              <tr><td>Weekly offs</td><td><b>{st.wo}</b> ({st.weekendOffs} on weekends)</td></tr>
-              <tr><td>Holidays off / worked</td><td><b>{st.ph}</b> / <b>{st.phWorked}</b></td></tr>
-              <tr><td>Leave / comp-off taken</td><td><b>{st.leave}</b> / <b>{st.compOff}</b></td></tr>
-              <tr><td>Comp-off balance</td><td><b>{st.compOffBalance}</b> <span className="faint">(opening {e.compOffOpening} + worked holidays − taken)</span></td></tr>
-              <tr><td>Preferred off-day met</td><td>{st.prefTotal ? `${st.prefMet}/${st.prefTotal}` : '—'}</td></tr>
+              <tr>
+                <td>Working days</td>
+                <td>
+                  <b>{st.work}</b> ({st.backupDays} with backup cover)
+                </td>
+              </tr>
+              <tr>
+                <td>Weekly offs</td>
+                <td>
+                  <b>{st.wo}</b> ({st.weekendOffs} on weekends)
+                </td>
+              </tr>
+              <tr>
+                <td>Holidays off / worked</td>
+                <td>
+                  <b>{st.ph}</b> / <b>{st.phWorked}</b>
+                </td>
+              </tr>
+              <tr>
+                <td>Leave / comp-off taken</td>
+                <td>
+                  <b>{st.leave}</b> / <b>{st.compOff}</b>
+                </td>
+              </tr>
+              <tr>
+                <td>Comp-off balance</td>
+                <td>
+                  <b>{st.compOffBalance}</b> <span className="faint">(opening {e.compOffOpening} + worked holidays − taken)</span>
+                </td>
+              </tr>
+              <tr>
+                <td>Preferred off-day met</td>
+                <td>{st.prefTotal ? `${st.prefMet}/${st.prefTotal}` : '—'}</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -432,7 +494,9 @@ function CellEditor({ empId, date, onClose }: { empId: ID; date: ISODate; onClos
   const listed = [...new Set([...prim, ...back, ...duties.map((d) => d.requirementId)])];
   const toggle = (r: ID) => {
     setStatus('WORK');
-    setDuties((ds) => (ds.some((x) => x.requirementId === r) ? ds.filter((x) => x.requirementId !== r) : [...ds, { requirementId: r, backup: !prim.includes(r) }]));
+    setDuties((ds) =>
+      ds.some((x) => x.requirementId === r) ? ds.filter((x) => x.requirementId !== r) : [...ds, { requirementId: r, backup: !prim.includes(r) }],
+    );
   };
   const lv = ctx.leaveOn.get(empId)?.get(date);
   const ids = duties.map((x) => x.requirementId);
@@ -493,7 +557,7 @@ function CellEditor({ empId, date, onClose }: { empId: ID; date: ISODate; onClos
                     <ProcTag ctx={ctx} reqId={r} /> {reqLabel(ctx, r)}
                   </td>
                   <td>{prim.includes(r) ? 'primary' : back.includes(r) ? 'backup' : <span style={{ color: 'var(--warn)' }}>not assigned</span>}</td>
-                  <td>{cov ? (cov.required === 0 ? <span className="faint">closed</span> : `${cov.staffed}/${cov.required}`) : '—'}</td>
+                  <td>{cov ? cov.required === 0 ? <span className="faint">closed</span> : `${cov.staffed}/${cov.required}` : '—'}</td>
                   <td>
                     {sh?.name} {sh?.start} to {sh?.end} {clash && <span className="badge warn">clash</span>}
                   </td>
@@ -517,7 +581,7 @@ function CellEditor({ empId, date, onClose }: { empId: ID; date: ISODate; onClos
             Add
           </button>
           <span className="faint">
-            Load {newLoad.toFixed(1)} / {e.maxLoad} FTE
+            Load {(status === 'WORK' ? newLoad : 0).toFixed(1)} / {e.maxLoad} FTE
           </span>
         </div>
       </div>

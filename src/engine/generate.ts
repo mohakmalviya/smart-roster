@@ -1,5 +1,5 @@
 import { buildContext, cloneCells, fixedUnavailable, load, reqLabel, shiftCompatible, empName, type Ctx } from './context';
-import { fmtDate, weekday } from './dates';
+import { fmtDate, weekday, plural } from './dates';
 import type { Cell, CellMap, Dataset, ID, ISODate, Roster, RosterLogEntry } from './types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -232,8 +232,8 @@ export function generateRoster(data: Dataset, month: string, opts: GenerateOptio
     {
       at: new Date().toISOString(),
       text: opts.freezeBefore
-        ? `Re-optimised from ${fmtDate(opts.freezeBefore)} (earlier days and locked cells kept). ${gapUnits} uncovered shift(s) remain.`
-        : `Generated roster (${ev.evaluations} plans evaluated). ${gapUnits} uncovered shift(s) remain.`,
+        ? `Re-optimised from ${fmtDate(opts.freezeBefore)} (earlier days and locked cells kept). ${gapUnits} uncovered ${plural(gapUnits, 'shift')} remain.`
+        : `Generated roster (${ev.evaluations} plans evaluated). ${gapUnits} uncovered ${plural(gapUnits, 'shift')} remain.`,
     },
   ];
 
@@ -282,7 +282,8 @@ function buildSlots(ctx: Ctx, fixed: Fixed): Slot[] {
           else if (c.status === 'WO' || (c.status === 'NA' && !ctx.leaveOn.get(e.id)?.has(d))) already++;
         } else {
           const a = ctx.adj[e.id]?.[d];
-          if (!a) free.push(d); // adjacent month not rostered yet: the off may land there
+          if (!a)
+            free.push(d); // adjacent month not rostered yet: the off may land there
           else if (a.status === 'WO' || a.status === 'NA') already++;
         }
       }
@@ -321,7 +322,18 @@ function sameDays(a: ISODate[], b: ISODate[]) {
   return a.length === b.length && a.every((d) => b.includes(d));
 }
 
+const hashCache = new Map<string, number>();
+/** Stable pseudo-random tie-breaker in [0, 1), cached per key. */
 function hash(s: string): number {
+  let v = hashCache.get(s);
+  if (v === undefined) {
+    v = fnv(s);
+    hashCache.set(s, v);
+  }
+  return v;
+}
+
+function fnv(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
@@ -550,8 +562,7 @@ export interface FillResult {
 export function fillGaps(ctx: Ctx, cells: CellMap, d: ISODate, backupDays = new Map<ID, number>()): FillResult {
   const res: FillResult = { gapUnits: 0, backupsUsed: 0, stretched: 0, added: [], gapReqs: [] };
   const staffed = new Map<ID, number>();
-  for (const e of ctx.emps)
-    for (const du of cells[e.id]?.[d]?.duties ?? []) staffed.set(du.requirementId, (staffed.get(du.requirementId) ?? 0) + 1);
+  for (const e of ctx.emps) for (const du of cells[e.id]?.[d]?.duties ?? []) staffed.set(du.requirementId, (staffed.get(du.requirementId) ?? 0) + 1);
 
   const short = ctx.reqs
     .filter((r) => (ctx.required.get(r.id)!.get(d) ?? 0) > (staffed.get(r.id) ?? 0))
@@ -659,7 +670,7 @@ export function applyAvailabilityChanges(data: Dataset, roster: Roster): RepairR
   for (const d of [...touched].sort()) {
     const r = fillGaps(ctx, cells, d);
     for (const a of r.added) changes.push(`${empName(ctx, a.empId)}, ${fmtDate(d)}: covers ${reqLabel(ctx, a.requirementId)} as backup`);
-    if (r.gapUnits) changes.push(`Gap on ${fmtDate(d)}: ${r.gapUnits} shift(s) could not be covered automatically`);
+    if (r.gapUnits) changes.push(`Gap on ${fmtDate(d)}: ${r.gapUnits} ${plural(r.gapUnits, 'shift')} could not be covered automatically`);
   }
 
   return {
@@ -670,7 +681,9 @@ export function applyAvailabilityChanges(data: Dataset, roster: Roster): RepairR
         ...roster.log,
         {
           at: new Date().toISOString(),
-          text: changes.length ? `Applied availability changes: ${changes.length} edit(s).` : 'Availability re-checked: no changes needed.',
+          text: changes.length
+            ? `Applied availability changes: ${changes.length} ${plural(changes.length, 'edit')}.`
+            : 'Availability re-checked: no changes needed.',
         },
       ],
     },

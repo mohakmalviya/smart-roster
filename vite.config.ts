@@ -29,5 +29,7 @@ export default defineConfig({
   plugins: [react(), devApi()],
   test: {
     environment: 'node',
+    // A full month search takes 1–2 s; regeneration tests run several. Leave room on slow machines.
+    testTimeout: 30000,
   },
 } as any);
