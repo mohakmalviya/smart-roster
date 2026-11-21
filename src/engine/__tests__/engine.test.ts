@@ -4,6 +4,7 @@ import { applyAvailabilityChanges, generateRoster } from '../generate';
 import { applySuggestion, setCell } from '../actions';
 import { buildContext } from '../context';
 import { validate } from '../validate';
+import { approvalState, approvePod, withdrawApproval } from '../approval';
 import type { Dataset } from '../types';
 
 const data = createSampleDataset();
@@ -197,5 +198,23 @@ describe('small hand-built scenarios', () => {
     const v = validate(buildContext(ds, '2027-02'), r.roster.cells);
     expect(v.summary.gapUnits).toBe(0);
     for (const [d, c] of Object.entries(r.roster.cells.a)) if (c.status === 'WO') expect(dow(d)).toBe(3);
+  });
+});
+
+describe('pod lead approval', () => {
+  it('holds until a cell in that pod changes, and only for that pod', () => {
+    const [podA, podB] = data.pods;
+    const lead = decCtx.emp.get(podA.leadId!)!;
+    let r = approvePod(decCtx, dec.roster, podA.id, { id: lead.id, name: lead.name });
+    r = approvePod(decCtx, r, podB.id, { id: podB.leadId, name: 'B lead' });
+    expect(approvalState(decCtx, r, podA.id)).toBe('approved');
+    expect(approvalState(decCtx, r, podB.id)).toBe('approved');
+    const emp = decCtx.emps.find((e) => e.podId === podA.id && e.role === 'AGENT')!;
+    const day = decCtx.dates[10];
+    const cur = r.cells[emp.id][day];
+    r = setCell(r, emp.id, day, cur.status === 'WO' ? { status: 'LEAVE', duties: [] } : { status: 'WO', duties: [] });
+    expect(approvalState(decCtx, r, podA.id)).toBe('changed');
+    expect(approvalState(decCtx, r, podB.id)).toBe('approved');
+    expect(approvalState(decCtx, withdrawApproval(decCtx, r, podB.id), podB.id)).toBe('waiting');
   });
 });

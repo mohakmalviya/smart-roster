@@ -28,8 +28,8 @@ export function Guide() {
             apply it.
           </li>
           <li>
-            <b>Publish</b>, then in <b>Changes</b> report that someone is sick for two days. Preview the minimal repair: only their days change, and a backup
-            takes over. Apply it, and the notification for each affected person is drafted.
+            In <b>Roster → Pod</b>, approve each pod as its lead, then <b>Publish</b>. In <b>Changes</b>, report that someone is sick for two days. Preview the
+            minimal repair: only their days change, and a backup takes over. Apply it, and the notification for each affected person is drafted.
           </li>
           <li>
             In <b>Setup</b>, add a brand and a process, assign a primary and a backup, and regenerate.
@@ -92,7 +92,13 @@ export function Guide() {
           <li>Weeks run Monday to Sunday; weekly offs are counted per full week, including days in the neighbouring month.</li>
           <li>Working a public holiday earns one comp-off, which the employee view tracks as a balance.</li>
           <li>Pod leads carry a smaller load (0.6 FTE) so they have time to lead; floaters have no primary brand and exist to cover gaps.</li>
-          <li>Data is stored in the browser (localStorage). The storage layer is one module and can be swapped for a server database.</li>
+          <li>
+            Setup and rosters are saved to a shared Postgres database, so everyone sees the same data. If it can’t be reached, the top bar says{' '}
+            <i>This browser only</i> and changes stay in this browser.
+          </li>
+          <li>
+            There are no logins. <i>Approve as</i> records the pod lead’s sign-off on trust.
+          </li>
         </ul>
       </section>
     </div>

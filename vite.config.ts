@@ -1,25 +1,38 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
-/** In `npm run dev`, serve /api/explain from api/explain.ts (on Vercel it is a Function). */
+/** In `npm run dev`, serve /api/<name> from api/<name>.ts the way Vercel Functions do. */
 function devApi(): Plugin {
   return {
     name: 'dev-api',
     configureServer(server) {
       const env = loadEnv(server.config.mode, process.cwd(), '');
-      if (env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY) process.env.ANTHROPIC_API_KEY = env.ANTHROPIC_API_KEY;
-      server.middlewares.use('/api/explain', async (req, res) => {
-        if (req.method !== 'POST') {
-          res.statusCode = 405;
+      for (const [k, v] of Object.entries(env)) if (process.env[k] === undefined) process.env[k] = v;
+      server.middlewares.use('/api', async (req, res) => {
+        const url = new URL(req.url ?? '/', 'http://localhost');
+        const name = url.pathname.replace(/^\/+|\/+$/g, '');
+        const method = req.method ?? 'GET';
+        if (!/^[a-z]+$/.test(name)) {
+          res.statusCode = 404;
           return res.end();
         }
-        const chunks: Buffer[] = [];
-        for await (const c of req) chunks.push(c as Buffer);
-        const mod = await server.ssrLoadModule('/api/explain.ts');
-        const out: Response = await mod.POST(new Request('http://localhost/api/explain', { method: 'POST', body: Buffer.concat(chunks).toString() }));
-        res.statusCode = out.status;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(await out.text());
+        try {
+          const mod = await server.ssrLoadModule(`/api/${name}.ts`);
+          if (typeof mod[method] !== 'function') {
+            res.statusCode = 405;
+            return res.end();
+          }
+          const chunks: Buffer[] = [];
+          for await (const c of req) chunks.push(c as Buffer);
+          const body = chunks.length ? Buffer.concat(chunks).toString() : undefined;
+          const out: Response = await mod[method](new Request(`http://localhost/api/${name}${url.search}`, { method, body }));
+          res.statusCode = out.status;
+          res.setHeader('Content-Type', out.headers.get('Content-Type') ?? 'application/json');
+          res.end(await out.text());
+        } catch (e) {
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: String(e) }));
+        }
       });
     },
   };

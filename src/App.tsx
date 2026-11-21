@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { approvalState } from './engine/approval';
 import { reqLabel } from './engine/context';
 import { monthLabel, shiftMonth, plural } from './engine/dates';
 import { cloneCells } from './engine/context';
@@ -63,6 +64,7 @@ export function App() {
           </div>
 
           {roster && <span className={`docstate ${published ? 'pub' : ''}`}>{published ? 'Published' : 'Draft'}</span>}
+          <SyncStatus />
 
           {s && tab !== 'overview' && (
             <span className="summary">
@@ -142,6 +144,30 @@ export function App() {
   );
 }
 
+const SYNC_TEXT = {
+  loading: ['Loading…', 'Reading the shared database'],
+  saving: ['Saving…', 'Sending your change to the shared database'],
+  saved: ['Saved', 'Saved to the shared database. Everyone who opens the app sees this version.'],
+  error: ['Not saved', 'The last change did not reach the shared database. Click to try again.'],
+  local: ['This browser only', 'The shared database is not reachable, so changes are kept in this browser.'],
+} as const;
+
+function SyncStatus() {
+  const { sync, retrySync } = useStore();
+  const [text, title] = SYNC_TEXT[sync];
+  if (sync === 'error')
+    return (
+      <button className="syncstate err linkbtn" onClick={retrySync} title={title}>
+        {text}, retry
+      </button>
+    );
+  return (
+    <span className={`syncstate ${sync}`} title={title} role="status">
+      {text}
+    </span>
+  );
+}
+
 function MoreMenu({ items, disabled }: { items: [string, ReactNode, () => void][]; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -181,10 +207,12 @@ function MoreMenu({ items, disabled }: { items: [string, ReactNode, () => void][
 }
 
 function PublishModal({ onClose }: { onClose: () => void }) {
-  const { roster, validation, setRoster, notify } = useStore();
+  const { roster, validation, setRoster, notify, ctx, data } = useStore();
   const errors = validation?.issues.filter((i) => i.severity === 'ERROR') ?? [];
   const [ack, setAck] = useState(false);
+  const [ackPods, setAckPods] = useState(false);
   if (!roster) return null;
+  const unapproved = data.pods.filter((p) => approvalState(ctx, roster, p.id) !== 'approved');
   return (
     <Modal
       title="Publish roster"
@@ -196,21 +224,19 @@ function PublishModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             className="btn primary"
-            disabled={errors.length > 0 && !ack}
+            disabled={(errors.length > 0 && !ack) || (unapproved.length > 0 && !ackPods)}
             onClick={() => {
+              const notes = [
+                errors.length ? `${errors.length} acknowledged ${plural(errors.length, 'issue')}` : '',
+                unapproved.length ? `${unapproved.length} ${plural(unapproved.length, 'pod')} not approved by the lead` : '',
+              ].filter(Boolean);
               setRoster({
                 ...roster,
                 status: 'PUBLISHED',
                 publishedAt: new Date().toISOString(),
                 publishedCells: cloneCells(roster.cells),
                 acknowledged: errors.map((e) => e.key),
-                log: [
-                  ...roster.log,
-                  {
-                    at: new Date().toISOString(),
-                    text: `Published${errors.length ? ` with ${errors.length} acknowledged ${plural(errors.length, 'issue')}` : ''}.`,
-                  },
-                ],
+                log: [...roster.log, { at: new Date().toISOString(), text: `Published${notes.length ? ` with ${notes.join(' and ')}` : ''}.` }],
               });
               notify('Roster published. Later changes will be tracked against this version.');
               onClose();
@@ -238,6 +264,30 @@ function PublishModal({ onClose }: { onClose: () => void }) {
           </div>
           <label className="row small">
             <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} /> I have reviewed these and accept them for this month.
+          </label>
+        </>
+      )}
+      {unapproved.length === 0 ? (
+        <div className="banner ok">Every pod lead has approved their pod.</div>
+      ) : (
+        <>
+          <div className="banner warn">
+            {unapproved.length} of {data.pods.length} {plural(data.pods.length, 'pod')} {unapproved.length === 1 ? 'has' : 'have'} no current approval from the
+            pod lead. Leads approve on the Roster tab, Pod view.
+          </div>
+          <div className="stack" style={{ gap: 4 }}>
+            {unapproved.map((p) => {
+              const lead = p.leadId ? ctx.emp.get(p.leadId)?.name : undefined;
+              const st = approvalState(ctx, roster, p.id);
+              return (
+                <div key={p.id} className="small">
+                  Pod {p.name}: {!lead ? 'no lead set' : st === 'changed' ? `changed since ${lead} approved` : `waiting for ${lead}`}
+                </div>
+              );
+            })}
+          </div>
+          <label className="row small">
+            <input type="checkbox" checked={ackPods} onChange={(e) => setAckPods(e.target.checked)} /> Publish without these approvals.
           </label>
         </>
       )}

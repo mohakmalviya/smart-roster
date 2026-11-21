@@ -20,7 +20,8 @@ A browser-based roster manager for a brand-support operation: employees in pods,
 | Company, pod, brand, process and employee views | Roster tab lenses; Overview has a coverage heatmap and a "who is working" board per day |
 | Manual edits with validation | Click any cell: the drawer shows what the change resolves and what it breaks *before* you apply it. Edited cells are locked and survive regeneration |
 | Changes after generation | Changes tab: report sickness or unavailability → preview → minimal repair, or re-optimise the rest of the month |
-| **Optional, done:** fair weekly offs and holiday rotation, preferences, backup recommendations, one-click fixes, re-optimise from a date, publish/approval, leave approval with risk preview, per-person change notifications, CSV export, JSON import/export, AI conflict explanations, adding brands, pods, processes and shifts at any time | |
+| **Optional, done:** fair weekly offs and holiday rotation, preferences, backup recommendations, one-click fixes, re-optimise from a date, pod lead approval before publishing, leave approval with risk preview, per-person change notifications, CSV export, JSON import/export, AI conflict explanations, adding brands, pods, processes and shifts at any time | |
+| Shared database | Setup and rosters live in Postgres (Neon) behind two API routes, so everyone who opens the app sees the same data. Saves carry a version number; a stale save gets a 409 and the app loads the newer version |
 
 ## Run it locally
 
@@ -34,15 +35,16 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173, then press **Generate roster**. Data is kept in the browser's localStorage; Setup → Data → *Reset to sample data* starts over.
+Open http://localhost:5173, then press **Generate roster**. Setup → Data → *Reset to sample data* starts over.
 
-Optional, for the "Explain with AI" button:
+Both server settings are optional:
 
 ```bash
 cp .env.example .env
 ```
 
-Then put your Anthropic API key in `.env`. Without a key everything else works, and the button says the AI explanation is unavailable. The engine's own explanation is always shown.
+- `DATABASE_URL`: a Postgres connection string (Neon's free plan works). The tables are created and seeded on the first request. Without it, the app says *This browser only* in the top bar and keeps everything in localStorage.
+- `ANTHROPIC_API_KEY`: for the "Explain with AI" button. Without it the button says the AI explanation is unavailable. The engine's own explanation is always shown.
 
 ```bash
 npm test
@@ -56,8 +58,9 @@ npm run build
 
 1. Push this repository to GitHub.
 2. In Vercel, **Add New → Project**, import the repo. The framework is detected as Vite; no build settings to change.
-3. Under **Environment Variables** add `ANTHROPIC_API_KEY` (optional; only the AI button needs it).
-4. Deploy. `api/explain.ts` becomes a serverless function at `/api/explain`.
+3. Add a database: **Storage → Create Database → Neon** (free plan) and connect it to the project. That sets `DATABASE_URL`.
+4. Under **Environment Variables** add `ANTHROPIC_API_KEY` (optional; only the AI button needs it).
+5. Deploy. Each file in `api/` becomes a serverless function.
 
 ## Architecture
 
@@ -69,14 +72,39 @@ src/
     generate.ts      roster generator + minimal repair after changes
     validate.ts      every rule, coverage, per-employee stats, explanations and suggested fixes
     actions.ts       manual edit, lock, apply suggestion, diff against published version
+    approval.ts      pod lead sign-off, voided when that pod's cells change
   data/seed.ts       sample dataset
-  state.tsx          app state + localStorage persistence (the only storage-aware module)
+  state.tsx          app state; loads and saves through the API (the only storage-aware module)
   worker.ts          generation runs in a Web Worker so the UI never freezes
   views/             Overview, Roster (5 lenses + cell editor), Issues, Changes, Setup, Guide
-api/explain.ts       Vercel function: AI explanation of one issue (Claude API)
+api/
+  state.ts           GET everything, PUT the setup, POST ?reset=1
+  roster.ts          PUT or DELETE one month's roster
+  explain.ts         AI explanation of one issue (Claude API)
+  _lib/db.ts         schema, seeding, transactions, version checks (Neon Postgres)
+  _lib/http.ts       request checks and error mapping
 ```
 
 The engine is independent of the UI, so the same functions run in the browser, in the worker, in tests and could run on a server.
+
+### Database
+
+```
+workspace(id, version, policy)            one row; version goes up on every setup save
+pods(id, name, lead_id)                   brands(id, name, code, pod_id → pods)
+process_types(id, code, name, color)           shifts(id, name, start_time, end_time)
+requirements(id, brand_id → brands, process_id → process_types, shift_id → shifts,
+             calendar, min_staff, weekday_min, date_min, effort)
+employees(id, name, pod_id → pods, role, offs_per_week, available_weekdays, preferred_off_days,
+          max_load, comp_off_opening, active)
+assignments(id, employee_id → employees, requirement_id → requirements, role PRIMARY|BACKUP)
+holidays(date, name)                      leaves(id, employee_id → employees, start_date, end_date, type, status, note)
+rosters(month, version, status, body)     one row per month; body holds the cells, log and approvals
+```
+
+The setup is saved as one transaction: lock the workspace row, check the version the client started from, rewrite the tables, bump the version. Foreign keys and check constraints reject a broken setup (a brand in a pod that doesn't exist, an unknown role), and the API answers 400. Each month's roster has its own version, so two managers editing different months never collide. If two people edit the same thing, the second save gets a 409, the app loads the newer version and says so.
+
+The app shows the state in the top bar: *Saved*, *Saving…*, *Not saved, retry*, or *This browser only* when the API can't be reached.
 
 ## Tell us how you think
 
@@ -128,14 +156,14 @@ When coverage still can't be met, the gap is left visible as a must-fix issue th
 
 **Automated:** planning weekly offs, the holiday rotation and comp-off tracking, assigning backups, detecting every conflict with an explanation, suggesting fixes, repairing the roster after a change, drafting change notifications, and showing the coverage impact of any edit or leave request before it is applied.
 
-**Left to people, deliberately:** anything that trades one person's or client's interest against another's. That means approving leave, accepting a stretched cross-cover or overtime, agreeing reduced cover with a client, and publishing. The tool makes the consequences visible and the action one click away, but doesn't take it. Manager edits are locked so the engine never undoes a human decision. The AI explanation only rewrites the engine's own findings; it can't change the roster.
+**Left to people, deliberately:** anything that trades one person's or client's interest against another's. That means approving leave, accepting a stretched cross-cover or overtime, agreeing reduced cover with a client, a pod lead signing off their pod, and publishing. The tool makes the consequences visible and the action one click away, but doesn't take it. Manager edits are locked so the engine never undoes a human decision. The AI explanation only rewrites the engine's own findings; it can't change the roster.
 
 ### 7. What changes if the team doubles?
 
 The generator's work grows roughly with people × weeks, and evaluation is incremental (only changed days are recomputed). Pair moves are already limited to the people involved in a problem week, so 60–70 people is still seconds in a Web Worker. Beyond that, the natural split is by pod: pods share few backups, so each pod can be solved independently (in parallel), with a final pass for cross-pod floaters. The bigger changes would be operational rather than algorithmic:
 
-- Move storage from localStorage to a server database (Postgres): `state.tsx` is the only module that touches storage.
-- Add authentication and roles, so pod leads edit their pod and ops managers publish.
+- The shared Postgres database is in place. At this size I would add an audit table (one row per cell change, who and when) rather than keeping the log inside each roster.
+- Add authentication and roles. Today anyone can press *Approve as <lead>*; with logins only that lead could, and ops managers would be the only ones who publish.
 - Add an audit trail per change and real notifications (email or Slack) in place of the drafted ones.
 
 The data model doesn't change.
@@ -144,7 +172,7 @@ The data model doesn't change.
 
 - **An exact solver for the hard cases.** Hand the off-day decisions to a CP-SAT / ILP solver when local search leaves gaps, so the tool can *prove* a gap is infeasible rather than only failing to find a fix.
 - **Plan across months.** January can't move December's last week today, so a few consecutive-day warnings remain at the turn of the month; I would solve with a rolling window.
-- **Server persistence, login and roles,** plus real email or Slack notifications and an approval workflow per pod lead.
+- **Login and roles,** so pod lead approval is tied to the lead's account, plus real email or Slack notifications.
 - **Skills and proficiency levels** instead of "knows this process or not", and shift preferences beyond off-days.
 - **Demand-driven minimums,** from ticket volume forecasts per brand, instead of fixed numbers.
 - **More tests**, especially property-based tests on random datasets (no hard rule ever broken), and end-to-end UI tests.

@@ -181,8 +181,19 @@ export interface Roster {
   publishedAt?: string;
   /** Issue keys the manager explicitly acknowledged when publishing. */
   acknowledged?: string[];
+  /** Pod lead sign-off, by pod id. Void once that pod's cells change. */
+  approvals?: Record<ID, PodApproval>;
   /** Short log of what the engine/manager did. */
   log: RosterLogEntry[];
+}
+
+export interface PodApproval {
+  /** Employee id of the lead who approved, and their name at the time. */
+  by: ID | null;
+  byName: string;
+  at: string;
+  /** Hash of the pod's cells when approved; a different hash means the approval is out of date. */
+  fingerprint: string;
 }
 
 export interface RosterLogEntry {

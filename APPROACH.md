@@ -8,14 +8,14 @@
 
 **Key decision 3: repair the roster after a change.** After publishing, people have planned around the roster. Reporting a sick day changes only the affected person-days and refills the gaps from backups; the preview shows the coverage impact first. Re-optimising the rest of the month is available, but only as an explicit choice. Manager edits are locked so the engine never overrides a person.
 
-**Mandatory vs preference.** Must-fix covers client coverage, leave and availability, shift clashes, overload and the weekly-off entitlement. Warnings and info cover the consecutive-day limit, holiday fairness, preferred off-days, stretched backups, pending-leave risk and comp-off balance. Publishing with must-fix issues needs an explicit, recorded acknowledgement.
+**Mandatory vs preference.** Must-fix covers client coverage, leave and availability, shift clashes, overload and the weekly-off entitlement. Warnings and info cover the consecutive-day limit, holiday fairness, preferred off-days, stretched backups, pending-leave risk and comp-off balance. Publishing with must-fix issues needs an explicit, recorded acknowledgement. Each pod lead approves their pod's month first; the approval stores a hash of that pod's cells, so any later edit voids it, and publishing without every approval needs a second acknowledgement.
 
 **AI where it helps.** "Explain with AI" sends the engine's own findings to Claude and asks for a short, manager-friendly explanation and recommendation. It's given only those facts and can't change the roster, so it can't contradict the rules engine.
 
-**Stack.** React + TypeScript (Vite). The engine is plain TypeScript with unit tests, and generation runs in a Web Worker. Data is kept in browser storage behind one module. A Vercel function handles the AI call.
+**Stack.** React + TypeScript (Vite). The engine is plain TypeScript with unit tests, and generation runs in a Web Worker. Setup and rosters are stored in Postgres (Neon) through two Vercel functions, so everyone sees the same data. Every save carries a version, and a stale one is refused rather than silently overwriting someone else's work. A third function handles the AI call.
 
 **Results on the sample data (32 people, 20 brands, 50 brand processes).** December generates in about 2 seconds with 99.6% coverage. Its 5 uncovered head-days are deliberately infeasible (a 365-day brand whose only agent and backup are both away at Christmas, and a 5-day leave with a single backup), and each is explained with options. January reaches 100% coverage.
 
-**With more time:** an exact CP-SAT solver to prove infeasibility, planning across months with a rolling window, server storage with roles and real notifications, skill levels, and demand-driven staffing minimums.
+**With more time:** an exact CP-SAT solver to prove infeasibility, planning across months with a rolling window, logins and roles, real notifications, skill levels, and demand-driven staffing minimums.
 
 Mohak Malviya, [LinkedIn](https://www.linkedin.com/in/mohak-malviya-a6b89b225)

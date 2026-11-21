@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { approvalState, approvePod, withdrawApproval } from '../engine/approval';
 import { publishedDiff, setCell, unlockCell } from '../engine/actions';
 import { load, reqLabel, shiftCompatible } from '../engine/context';
 import { fmtDate, WEEKDAY_SHORT, weekday, plural } from '../engine/dates';
@@ -68,7 +69,13 @@ export function RosterView({
     const reqs = ctx.reqs.filter((r) => ctx.brand.get(r.brandId)?.podId === podId).map((r) => r.id);
     body = (
       <>
-        <Picker label="Pod" value={podId} onChange={(v) => setSel('pod', v)} options={pods.map((p) => [p.id, p.name])} />
+        <Picker
+          label="Pod"
+          value={podId}
+          onChange={(v) => setSel('pod', v)}
+          options={pods.map((p) => [p.id, `${p.name} (${APPROVAL_SHORT[approvalState(ctx, roster, p.id)]})`])}
+        />
+        <PodApproval podId={podId} />
         <RosterGrid groups={[podGroup(podId)]} covReqs={reqs} onEdit={setEditing} />
       </>
     );
@@ -155,6 +162,60 @@ export function RosterView({
       {body}
       <Legend />
       {editing && <CellEditor empId={editing.empId} date={editing.date} onClose={() => setEditing(null)} />}
+    </div>
+  );
+}
+
+const APPROVAL_SHORT = { approved: 'approved', changed: 'changed since approval', waiting: 'not approved' } as const;
+
+/** The lead's sign-off for one pod. There are no logins, so the button says whose approval it records. */
+function PodApproval({ podId }: { podId: ID }) {
+  const { ctx, roster, data, setRoster, notify } = useStore();
+  if (!roster) return null;
+  const pod = data.pods.find((p) => p.id === podId);
+  const lead = pod?.leadId ? ctx.emp.get(pod.leadId) : undefined;
+  const state = approvalState(ctx, roster, podId);
+  const a = roster.approvals?.[podId];
+  const when = a ? new Date(a.at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  const approve = () => {
+    if (!lead) return;
+    setRoster(approvePod(ctx, roster, podId, { id: lead.id, name: lead.name }));
+    notify(`Pod ${pod?.name} approved by ${lead.name}.`);
+  };
+
+  if (!lead)
+    return (
+      <div className="banner warn small">Pod {pod?.name} has no lead, so nobody can approve its roster. Pick one in Setup, under Pods &amp; process types.</div>
+    );
+  if (state === 'approved')
+    return (
+      <div className="banner ok small">
+        <span>
+          Approved by {a!.byName} on {when}.
+        </span>
+        <div className="spacer" />
+        <button
+          className="btn ghost"
+          onClick={() => {
+            setRoster(withdrawApproval(ctx, roster, podId));
+            notify('Approval withdrawn.');
+          }}
+        >
+          Withdraw approval
+        </button>
+      </div>
+    );
+  return (
+    <div className="banner warn small">
+      <span>
+        {state === 'changed'
+          ? `${a!.byName} approved this pod on ${when}, but its roster has changed since. It needs approving again.`
+          : `Waiting for ${lead.name}, the pod lead, to check and approve this pod’s month.`}
+      </span>
+      <div className="spacer" />
+      <button className="btn primary" onClick={approve}>
+        {state === 'changed' ? `Approve again as ${lead.name}` : `Approve as ${lead.name}`}
+      </button>
     </div>
   );
 }

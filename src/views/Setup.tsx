@@ -840,13 +840,16 @@ function ShiftsAndPolicy() {
 // ── Data ────────────────────────────────────────────────────────────────────
 
 function DataTools() {
-  const { state, replaceState, resetAll, notify } = useStore();
+  const { state, replaceState, resetAll, notify, sync } = useStore();
   const file = useRef<HTMLInputElement>(null);
+  const shared = sync !== 'local' && sync !== 'loading';
   return (
     <div className="panel panel-pad stack">
       <h3>Data</h3>
       <p className="small muted">
-        Everything is stored in this browser. Export a backup to move it to another machine or share a scenario; import restores it exactly.
+        {shared
+          ? 'Setup and rosters are saved to a shared Postgres database, so everyone who opens the app sees the same data. Export a JSON backup to keep a scenario; importing one replaces the shared data.'
+          : 'The shared database is not reachable, so everything is saved in this browser only. Export a backup to move it to another machine or share a scenario; import restores it exactly.'}
       </p>
       <div className="row">
         <button className="btn" onClick={() => downloadFile(`smart-roster-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(state, null, 2), 'application/json')}>
@@ -877,9 +880,8 @@ function DataTools() {
         <button
           className="btn danger"
           onClick={() => {
-            if (confirm('Replace everything with the sample dataset? Generated rosters are removed.')) {
-              resetAll();
-              notify('Sample data restored.');
+            if (confirm(shared ? 'Replace everything with the sample dataset for everyone? All generated rosters are removed.' : 'Replace everything with the sample dataset? Generated rosters are removed.')) {
+              void resetAll();
             }
           }}
         >

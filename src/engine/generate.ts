@@ -245,6 +245,7 @@ export function generateRoster(data: Dataset, month: string, opts: GenerateOptio
     publishedCells: opts.existing?.publishedCells,
     publishedAt: opts.existing?.publishedAt,
     acknowledged: opts.existing?.acknowledged,
+    approvals: opts.existing?.approvals,
     log,
   };
   return { roster, cost: finalCost, gapUnits, evaluations: ev.evaluations, ms: Date.now() - t0 };
