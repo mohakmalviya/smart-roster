@@ -110,72 +110,77 @@ The app shows the state in the top bar: *Saved*, *Saving…*, *Not saved, retry*
 
 ### 1. How did you model the data?
 
-The model keeps two calendars apart:
+Early on I noticed I kept mixing up two different questions: when does a client need someone, and when is a person able to work? So I kept them as two separate sets of data.
 
-- **When the client needs cover.** The unit is a *requirement*: one process run for one brand (e.g. "GlowVeda · NDR"). Each has its own operating calendar (weekdays + whether it runs on public holidays), shift, minimum staff, optional per-weekday and per-date minimums (a sale day needs 2, a closure is 0), and an *effort* in FTE. Effort lets one person run all three small processes of a brand (0.3 + 0.3 + 0.4) while a busy process takes a whole person.
-- **When a person works.** An employee has a pod, a role (agent, lead, floater), weekly offs per week, the weekdays they can work at all, preferred off-days, a maximum daily load and a comp-off balance. Leave records (planned, sick, comp-off, unavailable; approved or pending) and public holidays sit on top.
+The client side is built from what I call requirements. A requirement is one type of work for one brand, like GlowVeda's NDR. Each one has its own days (which weekdays, and whether it runs on public holidays), a shift and a minimum number of people. A sale day can ask for 2 people and a closure day for 0. Each requirement also has a size, as a fraction of one person's day. That's how one person can run all three small processes of a brand (0.3 + 0.3 + 0.4) while a busy queue takes someone's whole day.
 
-The two are linked by **assignments**: an employee is PRIMARY or BACKUP on a requirement. A pod owns brands and has a lead who is also an employee. The roster itself is a grid of cells, `cells[employee][date] = { status, duties[] }`, where status is working, weekly off, holiday, leave, comp-off, not available or idle, and each duty says which requirement and whether it is backup cover. "Single-resource" is derived from the data (a brand with one primary), so it stays correct when Setup changes.
+The people side holds each person's pod, role (agent, lead or floater), how many offs they get a week, which weekdays they can work at all, which days they'd like off, how much work they can take in a day, and their comp-off balance. Leave and public holidays sit on top of that.
+
+Assignments connect the two: a person is either the primary or a backup on a requirement. The roster itself is just a grid with one cell per person per day. Each cell says what that person is doing that day (working, weekly off, holiday, leave, comp-off, not available or nothing to do), and if they're working, on which brand and whether as backup. I never store "single-resource" as a flag. The app works it out from the assignments (a brand with one primary), so it stays right when someone edits Setup.
 
 ### 2. How does generation work, and how does it satisfy constraints?
 
-It's a constraint-satisfaction problem solved by construction plus local search, which suits this size (30–60 people, one month) and keeps every step explainable:
+With 30 to 60 people and one month, I didn't need a heavy solver. A simple build-then-improve approach is fast enough, and I can explain every decision it makes, which matters here because a manager has to trust it.
 
-1. **Fixed facts first:** approved leave, comp-offs, unavailability and any cell a manager locked.
-2. **Decision variables:** which day(s) each person takes off in each full Monday–Sunday week. Weeks that cross a month boundary read the neighbouring month's roster, so nobody gets two offs or none at the turn of the month.
-3. **Materialise each day:** primaries work their processes; closed processes leave people idle; on public holidays only as many primaries work as the client needs, picked by who has worked the fewest holidays (each one earns a comp-off).
-4. **Fill gaps** from the process's configured backups (and its other primaries, e.g. one who had the holiday off). A backup must be free, on a compatible shift (the day's span ≤ 10 h by default) and under their load cap; same-pod people come first, then whoever has done the fewest backup days. People who know the process but aren't configured as its backup are never assigned automatically; they're offered as one-click suggestions.
-5. **Local search** moves offs (single moves, then pairs of people in "problem weeks") to minimise a weighted cost: uncovered head-day 1000 ≫ over-long working run 300 > working on a holiday 8 > idle day 6 > missed preference 4 > using a backup 3. Because the gap weight dominates, a preference is never bought with a coverage gap, and the weekly-off entitlement is never traded away at all.
-6. **Validate** the result with the same validator that runs after every manual edit.
+1. It starts with what can't move: approved leave, comp-offs, days someone can't work, and any day a manager has locked.
+2. The real decision is which day or days each person takes off in each Monday-to-Sunday week. When a week runs across two months, it reads the other month's roster, so nobody ends up with two offs, or none, at the changeover.
+3. It then fills in each day. Primaries work their brands. If a process is closed that day, its people have nothing to do. On a public holiday only as many people work as the client needs, and they're picked by who has worked the fewest holidays so far. Each holiday worked earns a comp-off.
+4. Any gap left gets a configured backup. The backup has to be free, on a shift that fits (the day can't stretch past 10 hours by default) and not overloaded. People in the same pod go first, then whoever has done the least backup work. If someone knows the process but isn't set up as its backup, the tool never puts them in on its own. It offers them as a suggestion instead.
+5. Then it tries moving people's offs around, first one person at a time and then two people together in the weeks with problems, and keeps each change that makes the roster better. An uncovered shift costs far more than anything else (1000 points, against 4 for a missed preference), so it will never leave a client uncovered just to give someone their preferred day off. The weekly-off entitlement can't be traded away at all.
+6. Finally it runs the same checks the app runs after every manual edit.
 
-December's sample generates in about 2 seconds (tens of thousands of candidate plans) with 99.6% coverage. The 5 head-days left uncovered can't be covered with this data, and each is explained.
+The December sample takes about 2 seconds and reaches 99.6% coverage. Five shifts stay uncovered, because nobody in the data can work them, and the app explains each one.
 
 ### 3. Single-resource brands vs multi-employee brands
 
-For a **single-resource** brand, the person's weekly off *is* a coverage gap on any day the brand operates, so each off is planned together with who covers it. The search prefers to put the off on a day the brand is closed (Sunday for Mon–Sat brands). If the brand runs 365 days, it puts the off where a backup is free and on a compatible shift. Backups are spread so one floater isn't covering three brands on the same day.
+On a one-person brand, that person's weekly off leaves the brand empty on any day it's open. So for these brands the tool plans the off and the cover for it together. Where it can, it puts the off on a day the brand is closed, which for a Monday-to-Saturday brand is Sunday. For a brand that runs every day, it picks a day when a backup is free and on a matching shift. It also spreads the backup work so one floater isn't covering three brands on the same day.
 
-For **multi-employee** brands, the team staggers its offs so the minimum staff is met each day, with peaks handled per weekday (UrbanKicks needs 2 on Mondays). On public holidays only the required number work, rotated fairly. Shared processes (two people on the same CS queue) and separate processes (one on CS, one on returns) are the same model: each requirement has its own list of primaries.
+Brands with a team are easier. The team's offs are staggered so the minimum is met every day, and busier weekdays get more people (UrbanKicks needs 2 on Mondays). On public holidays only the number needed work, and that rotates fairly. Two people sharing one support queue and two people on different processes use the same setup: each requirement has its own list of primaries.
 
 ### 4. What happens when a single-resource employee is unavailable?
 
-They report it in **Changes** (or the leave is approved). The engine does a **minimal repair**: only that person's affected days change, then each opened gap is filled from that process's configured backups in order (free, compatible shift, under load, same pod first, fewest backup days so far). The preview shows every edit and the coverage after, before anything is saved. If nobody qualifies, the gap stays as a must-fix issue that names each candidate and why they can't help, and offers the remaining options: a one-click cross-cover by someone who knows the process (shown with the load it would put on them), moving someone's weekly off, reviewing the leave, or agreeing reduced cover with the client. If the roster was published, each affected person gets a drafted change notification.
+The manager enters it in Changes, or it comes in as approved leave. By default the tool does the smallest fix it can: it changes only that person's affected days, then fills each gap from the process's backups in order (free, matching shift, not overloaded, same pod first, least backup work so far). You see every change and the new coverage before anything is saved.
 
-The alternative, **re-optimise from a date**, keeps everything before that date and any manager-locked cell, and re-plans offs from then on. It can fix gaps that one backup can't, at the cost of changing more people's plans. The manager picks; the default is the minimal repair.
+If no backup can do it, the gap stays as a must-fix issue. It names everyone who could normally cover and why each can't, then lists what's left: someone who knows the process covering for one day (it shows how much extra work that puts on them), moving someone's weekly off, looking at the leave again, or agreeing lower cover with the client. If the roster was already published, the tool drafts a message for each person affected.
+
+The other choice is to re-plan from a date. Everything before that date stays, locked days stay, and offs after it are planned again. That can close gaps a single backup can't, but more people's plans change, so the manager decides. The smallest fix is the default.
 
 ### 5. How are conflicting requirements and insufficient staffing handled?
 
-The generator never produces a roster that looks valid but isn't. Rules have a fixed precedence:
+I didn't want the tool to ever produce a roster that looks fine but isn't, so the rules have a fixed order:
 
-- **Hard rules, never broken by the engine:** approved leave and availability, one compatible shift per person, the load cap, the weekly-off entitlement.
-- **The goal it optimises hardest:** client coverage.
-- **Soft goals:** consecutive-day limit, holiday fairness, preferences.
+- These are never broken: approved leave and availability, one compatible shift per person, the daily workload limit, and the weekly offs everyone is owed.
+- This is what it tries hardest for: every client covered.
+- These matter less: not working too many days in a row, sharing holidays fairly, people's preferred days off.
 
-When coverage still can't be met, the gap is left visible as a must-fix issue that explains why (e.g. "Primary: Gaurav, planned leave. Backup: Simran, planned leave") and what would fix it. Where the engine can see a fix that bends a soft rule (a stretched cross-cover, a moved off), it offers it as a one-click suggestion instead of applying it silently. Configuration problems, such as a process with no primary or a pending leave that would leave a brand uncovered, are flagged before they become gaps. Publishing with open must-fix issues requires an explicit acknowledgement, which is recorded.
+When there aren't enough people, the gap stays on the roster as a must-fix issue that says why, for example "Primary: Gaurav, planned leave. Backup: Simran, planned leave," and what would fix it. If a fix needs one of the softer rules bent, like a long cross-cover or a moved off, the tool offers it as a suggestion and doesn't apply it quietly. Some setup problems get flagged before they ever turn into gaps, like a process with no primary, or pending leave that would leave a brand empty. And if you publish with must-fix issues still open, you have to tick that you know, and that gets logged.
 
 ### 6. What is automated and what is left to humans?
 
-**Automated:** planning weekly offs, the holiday rotation and comp-off tracking, assigning backups, detecting every conflict with an explanation, suggesting fixes, repairing the roster after a change, drafting change notifications, and showing the coverage impact of any edit or leave request before it is applied.
+The tool handles the routine work: planning weekly offs, rotating holidays and tracking comp-offs, assigning backups, finding every conflict and explaining it, suggesting fixes, repairing the roster after a change, drafting change messages, and showing what any edit or leave request would do before it's applied.
 
-**Left to people, deliberately:** anything that trades one person's or client's interest against another's. That means approving leave, accepting a stretched cross-cover or overtime, agreeing reduced cover with a client, a pod lead signing off their pod, and publishing. The tool makes the consequences visible and the action one click away, but doesn't take it. Manager edits are locked so the engine never undoes a human decision. The AI explanation only rewrites the engine's own findings; it can't change the roster.
+Anything that weighs one person or client against another stays with people: approving leave, accepting a long cross-cover or overtime, agreeing lower cover with a client, a pod lead signing off their pod, and publishing. The tool shows what each choice means and puts the button right there, but a person presses it. When a manager edits a day it gets locked, so regenerating never undoes their decision. The AI explanation only rewords what the engine already found and can't change the roster.
 
 ### 7. What changes if the team doubles?
 
-The generator's work grows roughly with people × weeks, and evaluation is incremental (only changed days are recomputed). Pair moves are already limited to the people involved in a problem week, so 60–70 people is still seconds in a Web Worker. Beyond that, the natural split is by pod: pods share few backups, so each pod can be solved independently (in parallel), with a final pass for cross-pod floaters. The bigger changes would be operational rather than algorithmic:
+The work grows roughly with the number of people times the number of weeks. Each change only recalculates the days it touches, and the two-person moves only look at people in problem weeks, so 60 to 70 people still generates in a few seconds in the background. Beyond that I'd split the problem by pod. Pods share very few backups, so each pod can be planned on its own, in parallel, with one last pass for the floaters that cover more than one pod.
 
-- The shared Postgres database is in place. At this size I would add an audit table (one row per cell change, who and when) rather than keeping the log inside each roster.
-- Add authentication and roles. Today anyone can press *Approve as <lead>*; with logins only that lead could, and ops managers would be the only ones who publish.
-- Add an audit trail per change and real notifications (email or Slack) in place of the drafted ones.
+The bigger changes would be around the tool, not in the scheduling logic:
 
-The data model doesn't change.
+- The shared Postgres database is already there. At that size I'd move the change log into its own table, one row per change with who made it and when, instead of keeping it inside each month's roster.
+- Logins and roles, so only a pod's own lead can approve it, and only ops managers can publish. Right now anyone can press "Approve as".
+- Real email or Slack notifications instead of drafted messages.
+
+The data model stays the same.
 
 ### 8. What would you improve with one more week?
 
-- **An exact solver for the hard cases.** Hand the off-day decisions to a CP-SAT / ILP solver when local search leaves gaps, so the tool can *prove* a gap is infeasible rather than only failing to find a fix.
-- **Plan across months.** January can't move December's last week today, so a few consecutive-day warnings remain at the turn of the month; I would solve with a rolling window.
-- **Login and roles,** so pod lead approval is tied to the lead's account, plus real email or Slack notifications.
-- **Skills and proficiency levels** instead of "knows this process or not", and shift preferences beyond off-days.
-- **Demand-driven minimums,** from ticket volume forecasts per brand, instead of fixed numbers.
-- **More tests**, especially property-based tests on random datasets (no hard rule ever broken), and end-to-end UI tests.
+- When gaps are left, I'd hand the off-day decisions to a proper solver (CP-SAT or ILP). Then the tool could prove a gap can't be filled, instead of only saying it didn't find a way.
+- I'd plan across months. Right now January can't move December's last week, so a few too-many-days-in-a-row warnings show up at the changeover. A rolling window would fix that.
+- Logins and roles, so pod lead approval is tied to the lead's own account, plus real email or Slack notifications.
+- Skill levels instead of "knows this process or doesn't", and shift preferences, not just preferred days off.
+- Minimum staffing worked out from each brand's expected ticket volume instead of fixed numbers.
+- More tests, especially tests that run lots of random datasets and check that no hard rule ever breaks, plus end-to-end tests of the UI.
 
 ## Assumptions
 
